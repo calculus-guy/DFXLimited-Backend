@@ -2,6 +2,7 @@ const axios = require('axios');
 const crypto = require('crypto');
 const Payment = require('../models/Payment');
 const Order = require('../models/Order');
+const CourseRegistration = require('../models/CourseRegistration');
 const orderService = require('./orderService');
 const emailService = require('./emailService');
 const { config } = require('../config');
@@ -117,7 +118,12 @@ const processWebhook = async (event) => {
   }
 
   if (status === 'success') {
-    // Update payment status
+    // Handle based on payment type
+    if (payment.type === 'COURSE') {
+      return processCoursePayment(payment, data);
+    }
+
+    // Handle PRODUCT payment (existing logic)
     payment.status = 'SUCCESS';
     payment.metadata = { ...payment.metadata, webhookData: data };
     await payment.save();
@@ -165,10 +171,106 @@ const getPaymentByReference = async (reference) => {
   return payment;
 };
 
+/**
+ * Initiate payment for course registration
+ */
+const initiateCoursePayment = async (registration, course, user) => {
+  // Check for existing payment
+  const existingPayment = await Payment.findOne({
+    courseRegistrationId: registration._id,
+    status: { $in: ['PENDING', 'SUCCESS'] }
+  });
+
+  if (existingPayment && existingPayment.status === 'SUCCESS') {
+    throw new ApiError(400, 'Course has already been paid for');
+  }
+
+  // Create payment record
+  const payment = await Payment.create({
+    courseRegistrationId: registration._id,
+    amount: course.price,
+    type: 'COURSE',
+    status: 'PENDING'
+  });
+
+  try {
+    const response = await paystackApi.post('/transaction/initialize', {
+      email: user.email,
+      amount: course.price, // Already in kobo
+      reference: payment.reference,
+      callback_url: `${config.cors.origin[0]}/course-payment/verify`,
+      metadata: {
+        courseRegistrationId: registration._id.toString(),
+        courseId: course._id.toString(),
+        courseName: course.title,
+        paymentId: payment._id.toString(),
+        userId: user._id.toString()
+      }
+    });
+
+    // Update payment with Paystack reference
+    payment.paystackReference = response.data.data.reference;
+    payment.metadata = response.data.data;
+    await payment.save();
+
+    // Update registration with payment reference
+    registration.paymentRef = payment.reference;
+    await registration.save();
+
+    return {
+      paymentUrl: response.data.data.authorization_url,
+      reference: payment.reference,
+      accessCode: response.data.data.access_code
+    };
+  } catch (error) {
+    // Mark payment as failed
+    payment.status = 'FAILED';
+    payment.metadata = { error: error.message };
+    await payment.save();
+
+    console.error('Paystack initialization error:', error.response?.data || error.message);
+    throw new ApiError(500, 'Failed to initialize payment');
+  }
+};
+
+/**
+ * Process course payment from webhook
+ */
+const processCoursePayment = async (payment, data) => {
+  // Update payment status
+  payment.status = 'SUCCESS';
+  payment.metadata = { ...payment.metadata, webhookData: data };
+  await payment.save();
+
+  // Update registration status
+  const registration = await CourseRegistration.findByIdAndUpdate(
+    payment.courseRegistrationId,
+    {
+      status: 'ACTIVE',
+      paidAt: new Date(),
+      paymentRef: payment.reference
+    },
+    { new: true }
+  ).populate('courseId').populate('userId', 'name email');
+
+  // Send course payment receipt email
+  try {
+    await emailService.sendCoursePaymentReceipt(registration, registration.courseId, payment);
+    await emailService.sendAdminCourseRegistrationAlert(registration, registration.courseId, registration.userId);
+  } catch (error) {
+    console.error('Failed to send course payment emails:', error.message);
+  }
+
+  console.log(`Course payment ${payment.reference} processed successfully`);
+  return { processed: true, registrationId: registration._id };
+};
+
 module.exports = {
   initiatePayment,
+  initiateCoursePayment,
   verifyWebhookSignature,
   processWebhook,
   verifyPayment,
   getPaymentByReference,
+  processCoursePayment
 };

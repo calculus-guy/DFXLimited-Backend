@@ -331,6 +331,227 @@ const sendDispatchNotification = async (order) => {
   return sendEmail(order.checkoutData.email, subject, html);
 };
 
+/**
+ * Course registration confirmation email
+ */
+const sendCourseRegistrationConfirmation = async (registration, course, user) => {
+  const subject = `Course Registration - ${course.title}`;
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #7c3aed; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        .course-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #7c3aed; }
+        .price { font-size: 24px; font-weight: bold; color: #7c3aed; }
+        .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Course Registration 🎓</h1>
+        </div>
+        <div class="content">
+          <h2>Hi ${user.name},</h2>
+          <p>You have successfully registered for the following course:</p>
+          
+          <div class="course-box">
+            <h3>${course.title}</h3>
+            <p>${course.description ? course.description.substring(0, 200) + '...' : ''}</p>
+            ${course.duration ? `<p><strong>Duration:</strong> ${course.duration}</p>` : ''}
+            <p class="price">Price: ₦${(course.price / 100).toLocaleString()}</p>
+          </div>
+
+          <p><strong>Status:</strong> ${registration.status}</p>
+          <p>Please complete your payment to gain access to course materials.</p>
+          
+          <p>Best regards,<br>The DFX Team</p>
+        </div>
+        <div class="footer">
+          <p>© ${new Date().getFullYear()} DFX Limited. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail(user.email, subject, html);
+};
+
+/**
+ * Course payment receipt email
+ */
+const sendCoursePaymentReceipt = async (registration, course, payment) => {
+  const user = registration.userId;
+  const subject = `Payment Confirmed - ${course.title}`;
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #10b981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        .receipt-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px solid #10b981; }
+        .amount { font-size: 24px; font-weight: bold; color: #10b981; }
+        .access-box { background: #ecfdf5; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; }
+        .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Payment Successful! ✅</h1>
+        </div>
+        <div class="content">
+          <h2>Hi ${user.name},</h2>
+          <p>Great news! Your payment for <strong>${course.title}</strong> has been confirmed.</p>
+          
+          <div class="receipt-box">
+            <h3>Payment Receipt</h3>
+            <p><strong>Reference:</strong> ${payment.reference}</p>
+            <p><strong>Course:</strong> ${course.title}</p>
+            <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+            <p class="amount">Amount Paid: ₦${(payment.amount / 100).toLocaleString()}</p>
+          </div>
+
+          <div class="access-box">
+            <h3>🎉 You're All Set!</h3>
+            <p>You now have full access to course materials.</p>
+            <p>Log in to your account to view and download materials.</p>
+          </div>
+
+          <p>If you have any questions, feel free to reach out to us.</p>
+          <p>Best regards,<br>The DFX Team</p>
+        </div>
+        <div class="footer">
+          <p>© ${new Date().getFullYear()} DFX Limited. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail(user.email, subject, html);
+};
+
+/**
+ * New material notification for enrolled students
+ */
+const sendNewMaterialNotification = async (material, course, students) => {
+  const subject = `New Material Available - ${course.title}`;
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #3b82f6; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        .material-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6; }
+        .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>New Course Material 📚</h1>
+        </div>
+        <div class="content">
+          <h2>Hello,</h2>
+          <p>A new material has been uploaded for <strong>${course.title}</strong>.</p>
+          
+          <div class="material-box">
+            <h3>📄 ${material.title}</h3>
+            <p><strong>Week:</strong> ${material.weekNumber}</p>
+            ${material.label ? `<p><strong>Topic:</strong> ${material.label}</p>` : ''}
+            <p><strong>Uploaded:</strong> ${new Date(material.createdAt).toLocaleDateString()}</p>
+          </div>
+
+          <p>Log in to your account to download this material.</p>
+          <p>Best regards,<br>The DFX Team</p>
+        </div>
+        <div class="footer">
+          <p>© ${new Date().getFullYear()} DFX Limited. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  // Send to all enrolled students
+  const emailPromises = students.map(student => 
+    sendEmail(student.userId.email, subject, html)
+  );
+
+  try {
+    await Promise.all(emailPromises);
+    console.log(`📧 New material notification sent to ${students.length} students`);
+    return true;
+  } catch (error) {
+    console.error('Failed to send material notifications:', error.message);
+    return false;
+  }
+};
+
+/**
+ * Admin notification for new course registration
+ */
+const sendAdminCourseRegistrationAlert = async (registration, course, user) => {
+  const subject = `🎓 New Course Registration - ${course.title}`;
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #7c3aed; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        .info-box { background: white; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .amount { font-size: 20px; font-weight: bold; color: #7c3aed; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>New Course Registration! 🎓</h1>
+        </div>
+        <div class="content">
+          <div class="info-box">
+            <h3>Course Details</h3>
+            <p><strong>Course:</strong> ${course.title}</p>
+            <p><strong>Registration Date:</strong> ${new Date(registration.registeredAt).toLocaleString()}</p>
+            <p><strong>Status:</strong> ${registration.status}</p>
+            <p class="amount">Amount: ₦${(course.price / 100).toLocaleString()}</p>
+          </div>
+
+          <div class="info-box">
+            <h3>Student Information</h3>
+            <p><strong>Name:</strong> ${user.name}</p>
+            <p><strong>Email:</strong> ${user.email}</p>
+          </div>
+
+          <p>A new student has registered and paid for this course.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail(config.admin.email, subject, html);
+};
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
@@ -338,4 +559,8 @@ module.exports = {
   sendPaymentReceipt,
   sendAdminNotification,
   sendDispatchNotification,
+  sendCourseRegistrationConfirmation,
+  sendCoursePaymentReceipt,
+  sendNewMaterialNotification,
+  sendAdminCourseRegistrationAlert,
 };

@@ -10,7 +10,12 @@ const paymentSchema = new mongoose.Schema(
     orderId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Order',
-      required: true,
+      default: null,
+    },
+    courseRegistrationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'CourseRegistration',
+      default: null,
     },
     amount: {
       type: Number,
@@ -55,6 +60,7 @@ paymentSchema.pre('save', function (next) {
 // Index for faster queries
 paymentSchema.index({ reference: 1 });
 paymentSchema.index({ orderId: 1 });
+paymentSchema.index({ courseRegistrationId: 1 });
 paymentSchema.index({ paystackReference: 1 });
 
 const Payment = mongoose.model('Payment', paymentSchema);
