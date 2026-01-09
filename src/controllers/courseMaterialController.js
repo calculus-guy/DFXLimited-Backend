@@ -103,8 +103,9 @@ const updateMaterial = async (req, res, next) => {
 const deleteMaterial = async (req, res, next) => {
   try {
     const { materialId } = req.params;
+    const adminId = req.user.userId;
 
-    await courseMaterialService.deleteMaterial(materialId);
+    await courseMaterialService.deleteMaterial(materialId, adminId);
 
     res.status(200).json({
       success: true,

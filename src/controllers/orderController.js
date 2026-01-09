@@ -65,7 +65,8 @@ const getAllOrders = catchAsync(async (req, res) => {
 
 const updateOrderStatus = catchAsync(async (req, res) => {
   const { status } = req.body;
-  const order = await orderService.updateOrderStatus(req.params.id, status);
+  const adminId = req.user.userId;
+  const order = await orderService.updateOrderStatus(req.params.id, status, adminId);
 
   res.status(200).json({
     success: true,

@@ -5,6 +5,7 @@ const Order = require('../models/Order');
 const CourseRegistration = require('../models/CourseRegistration');
 const orderService = require('./orderService');
 const emailService = require('./emailService');
+const { logActivity } = require('./activityLogService');
 const { config } = require('../config');
 const ApiError = require('../utils/ApiError');
 
@@ -138,6 +139,16 @@ const processWebhook = async (event) => {
       console.error('Failed to send payment receipt:', error.message);
     }
 
+    // Log activity
+    logActivity({
+      action: 'PAYMENT_SUCCESS',
+      actor: order.userId,
+      actorType: order.userId ? 'USER' : 'GUEST',
+      targetType: 'PAYMENT',
+      targetId: payment._id,
+      metadata: { reference, amount: payment.amount, orderId: order._id }
+    });
+
     console.log(`Payment ${reference} processed successfully`);
     return { processed: true, orderId: order._id };
   } else {
@@ -145,6 +156,16 @@ const processWebhook = async (event) => {
     payment.status = 'FAILED';
     payment.metadata = { ...payment.metadata, webhookData: data };
     await payment.save();
+
+    // Log failed payment
+    logActivity({
+      action: 'PAYMENT_FAILED',
+      actor: null,
+      actorType: 'SYSTEM',
+      targetType: 'PAYMENT',
+      targetId: payment._id,
+      metadata: { reference, reason: 'Payment failed' }
+    });
 
     console.log(`Payment ${reference} failed`);
     return { processed: true, status: 'failed' };
@@ -260,6 +281,21 @@ const processCoursePayment = async (payment, data) => {
   } catch (error) {
     console.error('Failed to send course payment emails:', error.message);
   }
+
+  // Log activity
+  logActivity({
+    action: 'COURSE_PAYMENT',
+    actor: registration.userId._id,
+    actorType: 'USER',
+    targetType: 'PAYMENT',
+    targetId: payment._id,
+    metadata: { 
+      reference: payment.reference, 
+      amount: payment.amount, 
+      courseId: registration.courseId._id,
+      courseName: registration.courseId.title
+    }
+  });
 
   console.log(`Course payment ${payment.reference} processed successfully`);
   return { processed: true, registrationId: registration._id };

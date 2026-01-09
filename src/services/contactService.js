@@ -1,11 +1,28 @@
 const ContactMessage = require('../models/ContactMessage');
 const ApiError = require('../utils/ApiError');
+const { logActivity } = require('./activityLogService');
 
 /**
  * Create a new contact message
  */
-const createContact = async (contactData) => {
+const createContact = async (contactData, ipAddress = null) => {
   const contact = await ContactMessage.create(contactData);
+
+  // Log activity
+  logActivity({
+    action: 'CONTACT_RECEIVED',
+    actor: null,
+    actorType: 'GUEST',
+    targetType: 'CONTACT',
+    targetId: contact._id,
+    metadata: { 
+      name: contact.name, 
+      email: contact.email, 
+      serviceType: contact.serviceType 
+    },
+    ipAddress
+  });
+
   return contact;
 };
 
@@ -57,7 +74,7 @@ const getAllContacts = async (filters = {}, pagination = {}) => {
 /**
  * Update contact status
  */
-const updateContactStatus = async (id, status) => {
+const updateContactStatus = async (id, status, adminId = null) => {
   const validStatuses = ['NEW', 'READ', 'REPLIED'];
   
   if (!validStatuses.includes(status)) {
@@ -72,6 +89,19 @@ const updateContactStatus = async (id, status) => {
 
   if (!contact) {
     throw new ApiError(404, 'Contact message not found');
+  }
+
+  // Log activity
+  const actionMap = { 'READ': 'CONTACT_READ', 'REPLIED': 'CONTACT_REPLIED' };
+  if (actionMap[status]) {
+    logActivity({
+      action: actionMap[status],
+      actor: adminId,
+      actorType: 'ADMIN',
+      targetType: 'CONTACT',
+      targetId: contact._id,
+      metadata: { name: contact.name, email: contact.email, status }
+    });
   }
 
   return contact;

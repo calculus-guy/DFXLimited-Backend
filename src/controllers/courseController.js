@@ -124,7 +124,8 @@ const create = async (req, res, next) => {
  */
 const update = async (req, res, next) => {
   try {
-    const course = await courseService.updateCourse(req.params.id, req.body);
+    const adminId = req.user.userId;
+    const course = await courseService.updateCourse(req.params.id, req.body, adminId);
 
     res.status(200).json({
       success: true,
@@ -141,7 +142,8 @@ const update = async (req, res, next) => {
  */
 const remove = async (req, res, next) => {
   try {
-    await courseService.deleteCourse(req.params.id);
+    const adminId = req.user.userId;
+    await courseService.deleteCourse(req.params.id, adminId);
 
     res.status(200).json({
       success: true,

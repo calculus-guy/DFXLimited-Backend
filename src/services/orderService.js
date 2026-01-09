@@ -2,6 +2,7 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 const productService = require('./productService');
 const emailService = require('./emailService');
+const { logActivity } = require('./activityLogService');
 const ApiError = require('../utils/ApiError');
 
 const createOrder = async (items, checkoutData, userId = null) => {
@@ -56,6 +57,16 @@ const createOrder = async (items, checkoutData, userId = null) => {
     totalAmount,
     checkoutData,
     status: 'PENDING',
+  });
+
+  // Log activity
+  logActivity({
+    action: 'ORDER_CREATED',
+    actor: userId,
+    actorType: userId ? 'USER' : 'GUEST',
+    targetType: 'ORDER',
+    targetId: order._id,
+    metadata: { orderNumber: order.orderNumber, totalAmount, itemCount: orderItems.length }
   });
 
   // Send order confirmation email
@@ -149,7 +160,7 @@ const getAllOrders = async (filters = {}, pagination = {}) => {
   };
 };
 
-const updateOrderStatus = async (id, status) => {
+const updateOrderStatus = async (id, status, adminId = null) => {
   const order = await Order.findByIdAndUpdate(
     id,
     { status },
@@ -158,6 +169,23 @@ const updateOrderStatus = async (id, status) => {
 
   if (!order) {
     throw new ApiError(404, 'Order not found');
+  }
+
+  // Log activity based on status
+  const actionMap = {
+    'SHIPPED': 'ORDER_SHIPPED',
+    'DELIVERED': 'ORDER_DELIVERED'
+  };
+  
+  if (actionMap[status]) {
+    logActivity({
+      action: actionMap[status],
+      actor: adminId,
+      actorType: 'ADMIN',
+      targetType: 'ORDER',
+      targetId: order._id,
+      metadata: { orderNumber: order.orderNumber, status }
+    });
   }
 
   // Send dispatch notification if status is SHIPPED
@@ -182,6 +210,16 @@ const markOrderAsPaid = async (orderId, paymentRef) => {
   if (!order) {
     throw new ApiError(404, 'Order not found');
   }
+
+  // Log activity
+  logActivity({
+    action: 'ORDER_PAID',
+    actor: order.userId,
+    actorType: order.userId ? 'USER' : 'GUEST',
+    targetType: 'ORDER',
+    targetId: order._id,
+    metadata: { orderNumber: order.orderNumber, paymentRef, amount: order.totalAmount }
+  });
 
   // Decrement stock for each item
   for (const item of order.items) {

@@ -2,6 +2,7 @@ const CourseMaterial = require('../models/CourseMaterial');
 const Course = require('../models/Course');
 const { cloudinary } = require('../config/cloudinary');
 const ApiError = require('../utils/ApiError');
+const { logActivity } = require('./activityLogService');
 
 /**
  * Upload course material
@@ -28,6 +29,21 @@ const uploadMaterial = async (courseId, file, metadata, adminId) => {
     fileSize: file.size,
     originalFilename: file.originalname,
     uploadedBy: adminId
+  });
+
+  // Log activity
+  logActivity({
+    action: 'MATERIAL_UPLOADED',
+    actor: adminId,
+    actorType: 'ADMIN',
+    targetType: 'MATERIAL',
+    targetId: material._id,
+    metadata: { 
+      title: material.title, 
+      courseId, 
+      courseName: course.title,
+      weekNumber: material.weekNumber 
+    }
   });
 
   return material;
@@ -112,7 +128,7 @@ const updateMaterial = async (id, updateData) => {
 /**
  * Soft delete material
  */
-const deleteMaterial = async (id) => {
+const deleteMaterial = async (id, adminId = null) => {
   const material = await CourseMaterial.findOne({ _id: id, isDeleted: false });
 
   if (!material) {
@@ -120,6 +136,17 @@ const deleteMaterial = async (id) => {
   }
 
   await material.softDelete();
+
+  // Log activity
+  logActivity({
+    action: 'MATERIAL_DELETED',
+    actor: adminId,
+    actorType: 'ADMIN',
+    targetType: 'MATERIAL',
+    targetId: material._id,
+    metadata: { title: material.title, courseId: material.courseId }
+  });
+
   return material;
 };
 

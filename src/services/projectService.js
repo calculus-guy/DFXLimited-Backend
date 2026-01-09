@@ -1,5 +1,6 @@
 const Project = require('../models/Project');
 const ApiError = require('../utils/ApiError');
+const { logActivity } = require('./activityLogService');
 
 /**
  * Create a new project
@@ -9,6 +10,17 @@ const createProject = async (projectData, adminId) => {
     ...projectData,
     createdBy: adminId
   });
+
+  // Log activity
+  logActivity({
+    action: 'PROJECT_CREATED',
+    actor: adminId,
+    actorType: 'ADMIN',
+    targetType: 'PROJECT',
+    targetId: project._id,
+    metadata: { title: project.title, category: project.category }
+  });
+
   return project;
 };
 
@@ -102,7 +114,7 @@ const getAllProjects = async (filters = {}, pagination = {}) => {
 /**
  * Update project
  */
-const updateProject = async (id, updateData) => {
+const updateProject = async (id, updateData, adminId = null) => {
   const project = await Project.findByIdAndUpdate(
     id,
     updateData,
@@ -113,18 +125,38 @@ const updateProject = async (id, updateData) => {
     throw new ApiError(404, 'Project not found');
   }
 
+  // Log activity
+  logActivity({
+    action: 'PROJECT_UPDATED',
+    actor: adminId,
+    actorType: 'ADMIN',
+    targetType: 'PROJECT',
+    targetId: project._id,
+    metadata: { title: project.title, updatedFields: Object.keys(updateData) }
+  });
+
   return project;
 };
 
 /**
  * Delete project
  */
-const deleteProject = async (id) => {
+const deleteProject = async (id, adminId = null) => {
   const project = await Project.findByIdAndDelete(id);
   
   if (!project) {
     throw new ApiError(404, 'Project not found');
   }
+
+  // Log activity
+  logActivity({
+    action: 'PROJECT_DELETED',
+    actor: adminId,
+    actorType: 'ADMIN',
+    targetType: 'PROJECT',
+    targetId: project._id,
+    metadata: { title: project.title }
+  });
 
   return project;
 };
@@ -132,7 +164,7 @@ const deleteProject = async (id) => {
 /**
  * Toggle publish status
  */
-const togglePublishStatus = async (id) => {
+const togglePublishStatus = async (id, adminId = null) => {
   const project = await Project.findById(id);
   
   if (!project) {
@@ -141,6 +173,18 @@ const togglePublishStatus = async (id) => {
 
   project.isPublished = !project.isPublished;
   await project.save();
+
+  // Log activity if published
+  if (project.isPublished) {
+    logActivity({
+      action: 'PROJECT_PUBLISHED',
+      actor: adminId,
+      actorType: 'ADMIN',
+      targetType: 'PROJECT',
+      targetId: project._id,
+      metadata: { title: project.title }
+    });
+  }
 
   return project;
 };

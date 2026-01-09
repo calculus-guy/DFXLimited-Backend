@@ -1,5 +1,6 @@
 const Course = require('../models/Course');
 const ApiError = require('../utils/ApiError');
+const { logActivity } = require('./activityLogService');
 
 /**
  * Create a new course
@@ -9,6 +10,17 @@ const createCourse = async (courseData, adminId) => {
     ...courseData,
     createdBy: adminId
   });
+
+  // Log activity
+  logActivity({
+    action: 'COURSE_CREATED',
+    actor: adminId,
+    actorType: 'ADMIN',
+    targetType: 'COURSE',
+    targetId: course._id,
+    metadata: { title: course.title, price: course.price }
+  });
+
   return course;
 };
 
@@ -95,7 +107,7 @@ const getAllCourses = async (filters = {}, pagination = {}) => {
 /**
  * Update course
  */
-const updateCourse = async (id, updateData) => {
+const updateCourse = async (id, updateData, adminId = null) => {
   const course = await Course.findOneAndUpdate(
     { _id: id, isDeleted: false },
     updateData,
@@ -106,13 +118,23 @@ const updateCourse = async (id, updateData) => {
     throw new ApiError(404, 'Course not found');
   }
 
+  // Log activity
+  logActivity({
+    action: 'COURSE_UPDATED',
+    actor: adminId,
+    actorType: 'ADMIN',
+    targetType: 'COURSE',
+    targetId: course._id,
+    metadata: { title: course.title, updatedFields: Object.keys(updateData) }
+  });
+
   return course;
 };
 
 /**
  * Soft delete course
  */
-const deleteCourse = async (id) => {
+const deleteCourse = async (id, adminId = null) => {
   const course = await Course.findOne({ _id: id, isDeleted: false });
   
   if (!course) {
@@ -120,6 +142,17 @@ const deleteCourse = async (id) => {
   }
 
   await course.softDelete();
+
+  // Log activity
+  logActivity({
+    action: 'COURSE_DELETED',
+    actor: adminId,
+    actorType: 'ADMIN',
+    targetType: 'COURSE',
+    targetId: course._id,
+    metadata: { title: course.title }
+  });
+
   return course;
 };
 

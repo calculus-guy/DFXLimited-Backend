@@ -1,6 +1,7 @@
 const CourseRegistration = require('../models/CourseRegistration');
 const Course = require('../models/Course');
 const ApiError = require('../utils/ApiError');
+const { logActivity } = require('./activityLogService');
 
 /**
  * Register user for a course
@@ -39,6 +40,16 @@ const registerForCourse = async (userId, courseId) => {
     userId,
     courseId,
     status: 'PENDING'
+  });
+
+  // Log activity
+  logActivity({
+    action: 'COURSE_REGISTRATION',
+    actor: userId,
+    actorType: 'USER',
+    targetType: 'REGISTRATION',
+    targetId: registration._id,
+    metadata: { courseId, courseName: course.title, price: course.price }
   });
 
   return { registration, course, isReactivated: false };

@@ -15,6 +15,9 @@ const adminOrderRoutes = require('./admin/order.routes');
 const adminCourseRoutes = require('./admin/course.routes');
 const adminContactRoutes = require('./admin/contact.routes');
 const adminProjectRoutes = require('./admin/project.routes');
+const adminDashboardRoutes = require('./admin/dashboard.routes');
+const adminActivityLogRoutes = require('./admin/activityLog.routes');
+const adminUserRoutes = require('./admin/user.routes');
 
 const router = express.Router();
 
@@ -43,6 +46,9 @@ router.use('/admin/orders', adminOrderRoutes);
 router.use('/admin/courses', adminCourseRoutes);
 router.use('/admin/contacts', adminContactRoutes);
 router.use('/admin/projects', adminProjectRoutes);
+router.use('/admin/dashboard', adminDashboardRoutes);
+router.use('/admin/activity-logs', adminActivityLogRoutes);
+router.use('/admin/users', adminUserRoutes);
 router.use('/upload', uploadRoutes);
 
 module.exports = router;

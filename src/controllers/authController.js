@@ -11,7 +11,8 @@ const cookieOptions = {
 };
 
 const register = catchAsync(async (req, res) => {
-  const { user, accessToken, refreshToken } = await authService.register(req.body);
+  const ipAddress = req.ip || req.connection.remoteAddress;
+  const { user, accessToken, refreshToken } = await authService.register(req.body, ipAddress);
 
   res.cookie('refreshToken', refreshToken, cookieOptions);
 
@@ -26,7 +27,8 @@ const register = catchAsync(async (req, res) => {
 
 const login = catchAsync(async (req, res) => {
   const { email, password } = req.body;
-  const { user, accessToken, refreshToken } = await authService.login(email, password);
+  const ipAddress = req.ip || req.connection.remoteAddress;
+  const { user, accessToken, refreshToken } = await authService.login(email, password, ipAddress);
 
   res.cookie('refreshToken', refreshToken, cookieOptions);
 

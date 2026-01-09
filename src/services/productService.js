@@ -1,5 +1,6 @@
 const Product = require('../models/Product');
 const ApiError = require('../utils/ApiError');
+const { logActivity } = require('./activityLogService');
 
 const getProducts = async (filters = {}, pagination = {}) => {
   const { category, inStock, search } = filters;
@@ -53,12 +54,23 @@ const getProductById = async (id) => {
   return product;
 };
 
-const createProduct = async (data) => {
+const createProduct = async (data, adminId = null) => {
   const product = await Product.create(data);
+
+  // Log activity
+  logActivity({
+    action: 'PRODUCT_CREATED',
+    actor: adminId,
+    actorType: 'ADMIN',
+    targetType: 'PRODUCT',
+    targetId: product._id,
+    metadata: { name: product.name, price: product.price, category: product.category }
+  });
+
   return product;
 };
 
-const updateProduct = async (id, data) => {
+const updateProduct = async (id, data, adminId = null) => {
   const product = await Product.findByIdAndUpdate(
     id,
     data,
@@ -69,10 +81,20 @@ const updateProduct = async (id, data) => {
     throw new ApiError(404, 'Product not found');
   }
 
+  // Log activity
+  logActivity({
+    action: 'PRODUCT_UPDATED',
+    actor: adminId,
+    actorType: 'ADMIN',
+    targetType: 'PRODUCT',
+    targetId: product._id,
+    metadata: { name: product.name, updatedFields: Object.keys(data) }
+  });
+
   return product;
 };
 
-const deleteProduct = async (id) => {
+const deleteProduct = async (id, adminId = null) => {
   const product = await Product.findByIdAndUpdate(
     id,
     { isActive: false },
@@ -82,6 +104,16 @@ const deleteProduct = async (id) => {
   if (!product) {
     throw new ApiError(404, 'Product not found');
   }
+
+  // Log activity
+  logActivity({
+    action: 'PRODUCT_DELETED',
+    actor: adminId,
+    actorType: 'ADMIN',
+    targetType: 'PRODUCT',
+    targetId: product._id,
+    metadata: { name: product.name }
+  });
 
   return product;
 };

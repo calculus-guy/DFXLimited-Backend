@@ -25,7 +25,8 @@ const getProduct = catchAsync(async (req, res) => {
 });
 
 const createProduct = catchAsync(async (req, res) => {
-  const product = await productService.createProduct(req.body);
+  const adminId = req.user.userId;
+  const product = await productService.createProduct(req.body, adminId);
 
   res.status(201).json({
     success: true,
@@ -34,7 +35,8 @@ const createProduct = catchAsync(async (req, res) => {
 });
 
 const updateProduct = catchAsync(async (req, res) => {
-  const product = await productService.updateProduct(req.params.id, req.body);
+  const adminId = req.user.userId;
+  const product = await productService.updateProduct(req.params.id, req.body, adminId);
 
   res.status(200).json({
     success: true,
@@ -43,7 +45,8 @@ const updateProduct = catchAsync(async (req, res) => {
 });
 
 const deleteProduct = catchAsync(async (req, res) => {
-  await productService.deleteProduct(req.params.id);
+  const adminId = req.user.userId;
+  await productService.deleteProduct(req.params.id, adminId);
 
   res.status(200).json({
     success: true,

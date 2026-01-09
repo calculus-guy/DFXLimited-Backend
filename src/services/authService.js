@@ -2,8 +2,9 @@ const User = require('../models/User');
 const tokenService = require('./tokenService');
 const ApiError = require('../utils/ApiError');
 const { sendWelcomeEmail } = require('./emailService');
+const { logActivity } = require('./activityLogService');
 
-const register = async (userData) => {
+const register = async (userData, ipAddress = null) => {
   const { email, password, name } = userData;
 
   const existingUser = await User.findOne({ email });
@@ -30,10 +31,21 @@ const register = async (userData) => {
     console.error('Failed to send welcome email:', err.message);
   });
 
+  // Log activity
+  logActivity({
+    action: 'USER_REGISTERED',
+    actor: user._id,
+    actorType: 'USER',
+    targetType: 'USER',
+    targetId: user._id,
+    metadata: { email: user.email, name: user.name },
+    ipAddress
+  });
+
   return { user, accessToken, refreshToken };
 };
 
-const login = async (email, password) => {
+const login = async (email, password, ipAddress = null) => {
   const user = await User.findOne({ email }).select('+password');
   
   if (!user || !(await user.comparePassword(password))) {
@@ -52,6 +64,17 @@ const login = async (email, password) => {
 
   user.refreshToken = tokenService.hashToken(refreshToken);
   await user.save();
+
+  // Log activity
+  logActivity({
+    action: 'USER_LOGIN',
+    actor: user._id,
+    actorType: user.role === 'ADMIN' ? 'ADMIN' : 'USER',
+    targetType: 'USER',
+    targetId: user._id,
+    metadata: { email: user.email },
+    ipAddress
+  });
 
   return { user, accessToken, refreshToken };
 };

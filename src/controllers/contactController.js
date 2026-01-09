@@ -6,7 +6,8 @@ const emailService = require('../services/emailService');
  */
 const submit = async (req, res, next) => {
   try {
-    const contact = await contactService.createContact(req.body);
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const contact = await contactService.createContact(req.body, ipAddress);
 
     // Send email notification to admin (non-blocking)
     emailService.sendContactInquiryNotification(contact).catch(err => {
@@ -70,9 +71,11 @@ const getById = async (req, res, next) => {
  */
 const updateStatus = async (req, res, next) => {
   try {
+    const adminId = req.user.userId;
     const contact = await contactService.updateContactStatus(
       req.params.id,
-      req.body.status
+      req.body.status,
+      adminId
     );
 
     res.status(200).json({
