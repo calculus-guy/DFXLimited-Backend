@@ -16,18 +16,15 @@ const courseSchema = new mongoose.Schema({
     type: Number,
     required: [true, 'Course price is required'],
     min: [0, 'Price cannot be negative']
-    // Stored in kobo (NGN * 100)
   },
   duration: {
     type: String,
     trim: true,
     default: null
-    // e.g., "8 weeks", "3 months"
   },
   thumbnail: {
     type: String,
     default: null
-    // Cloudinary URL (optional)
   },
   isEnabled: {
     type: Boolean,
@@ -50,27 +47,22 @@ const courseSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Indexes for efficient queries
 courseSchema.index({ isEnabled: 1, isDeleted: 1 });
 courseSchema.index({ createdAt: -1 });
 
-// Virtual for formatted price
 courseSchema.virtual('formattedPrice').get(function() {
   return `₦${(this.price / 100).toLocaleString()}`;
 });
 
-// Ensure virtuals are included in JSON
 courseSchema.set('toJSON', { virtuals: true });
 courseSchema.set('toObject', { virtuals: true });
 
-// Soft delete method
 courseSchema.methods.softDelete = async function() {
   this.isDeleted = true;
   this.deletedAt = new Date();
   return this.save();
 };
 
-// Static method to find available courses (public)
 courseSchema.statics.findAvailable = function(query = {}) {
   return this.find({
     ...query,
