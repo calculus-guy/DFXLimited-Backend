@@ -1,0 +1,202 @@
+const Order = require('../models/Order');
+const Product = require('../models/Product');
+const productService = require('./productService');
+const emailService = require('./emailService');
+const ApiError = require('../utils/ApiError');
+
+const createOrder = async (items, checkoutData, userId = null) => {
+  const productIds = items.map((item) => item.productId);
+  
+  const products = await productService.getProductsByIds(productIds);
+  
+  if (products.length !== productIds.length) {
+    throw new ApiError(400, 'One or more products not found');
+  }
+
+  const productMap = new Map(products.map((p) => [p._id.toString(), p]));
+
+  const orderItems = [];
+  let totalAmount = 0;
+
+  for (const item of items) {
+    const product = productMap.get(item.productId);
+    
+    if (!product) {
+      throw new ApiError(400, `Product ${item.productId} not found`);
+    }
+
+    if (product.stockStatus === 'OUT_OF_STOCK') {
+      throw new ApiError(400, `Product "${product.name}" is out of stock`);
+    }
+
+    if (product.stockQuantity < item.quantity) {
+      throw new ApiError(
+        400,
+        `Insufficient stock for "${product.name}". Available: ${product.stockQuantity}`
+      );
+    }
+
+    const subtotal = product.price * item.quantity;
+    
+    orderItems.push({
+      productId: product._id,
+      productName: product.name,
+      productPrice: product.price,
+      quantity: item.quantity,
+      subtotal,
+    });
+
+    totalAmount += subtotal;
+  }
+
+  // Create the order
+  const order = await Order.create({
+    userId,
+    items: orderItems,
+    totalAmount,
+    checkoutData,
+    status: 'PENDING',
+  });
+
+  // Send order confirmation email
+  try {
+    await emailService.sendOrderConfirmation(order);
+    await emailService.sendAdminNotification(order);
+  } catch (error) {
+    console.error('Failed to send order emails:', error.message);
+  }
+
+  return order;
+};
+
+const getOrderById = async (id, userId = null) => {
+  const order = await Order.findById(id);
+  
+  if (!order) {
+    throw new ApiError(404, 'Order not found');
+  }
+
+  // If userId provided, verify ownership
+  if (userId && order.userId && order.userId.toString() !== userId) {
+    throw new ApiError(403, 'You do not have access to this order');
+  }
+
+  return order;
+};
+
+const getOrderByNumber = async (orderNumber, email) => {
+  const order = await Order.findOne({
+    orderNumber,
+    'checkoutData.email': email.toLowerCase(),
+  });
+
+  if (!order) {
+    throw new ApiError(404, 'Order not found');
+  }
+
+  return order;
+};
+
+const getUserOrders = async (userId, pagination = {}) => {
+  const { page = 1, limit = 10 } = pagination;
+  const skip = (page - 1) * limit;
+
+  const [orders, total] = await Promise.all([
+    Order.find({ userId })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit)),
+    Order.countDocuments({ userId }),
+  ]);
+
+  return {
+    orders,
+    pagination: {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total,
+      pages: Math.ceil(total / limit),
+    },
+  };
+};
+
+const getAllOrders = async (filters = {}, pagination = {}) => {
+  const { status } = filters;
+  const { page = 1, limit = 10 } = pagination;
+  const skip = (page - 1) * limit;
+
+  const query = {};
+  if (status) {
+    query.status = status;
+  }
+
+  const [orders, total] = await Promise.all([
+    Order.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit)),
+    Order.countDocuments(query),
+  ]);
+
+  return {
+    orders,
+    pagination: {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total,
+      pages: Math.ceil(total / limit),
+    },
+  };
+};
+
+const updateOrderStatus = async (id, status) => {
+  const order = await Order.findByIdAndUpdate(
+    id,
+    { status },
+    { new: true, runValidators: true }
+  );
+
+  if (!order) {
+    throw new ApiError(404, 'Order not found');
+  }
+
+  // Send dispatch notification if status is SHIPPED
+  if (status === 'SHIPPED') {
+    try {
+      await emailService.sendDispatchNotification(order);
+    } catch (error) {
+      console.error('Failed to send dispatch email:', error.message);
+    }
+  }
+
+  return order;
+};
+
+const markOrderAsPaid = async (orderId, paymentRef) => {
+  const order = await Order.findByIdAndUpdate(
+    orderId,
+    { status: 'PAID', paymentRef },
+    { new: true }
+  );
+
+  if (!order) {
+    throw new ApiError(404, 'Order not found');
+  }
+
+  // Decrement stock for each item
+  for (const item of order.items) {
+    await productService.updateStock(item.productId, item.quantity);
+  }
+
+  return order;
+};
+
+module.exports = {
+  createOrder,
+  getOrderById,
+  getOrderByNumber,
+  getUserOrders,
+  getAllOrders,
+  updateOrderStatus,
+  markOrderAsPaid,
+};

@@ -14,6 +14,11 @@ const envSchema = Joi.object({
   CORS_ORIGIN: Joi.string().default('http://localhost:5173'),
   ADMIN_EMAIL: Joi.string().email().required().description('Admin email for seeding'),
   ADMIN_PASSWORD: Joi.string().min(8).required().description('Admin password for seeding'),
+  PAYSTACK_SECRET_KEY: Joi.string().required().description('Paystack secret key'),
+  PAYSTACK_PUBLIC_KEY: Joi.string().required().description('Paystack public key'),
+  CLOUDINARY_CLOUD_NAME: Joi.string().required().description('Cloudinary cloud name'),
+  CLOUDINARY_API_KEY: Joi.string().required().description('Cloudinary API key'),
+  CLOUDINARY_API_SECRET: Joi.string().required().description('Cloudinary API secret'),
 }).unknown();
 
 const { value: envVars, error } = envSchema.validate(process.env);
@@ -40,5 +45,9 @@ module.exports = {
   admin: {
     email: envVars.ADMIN_EMAIL,
     password: envVars.ADMIN_PASSWORD,
+  },
+  paystack: {
+    secretKey: envVars.PAYSTACK_SECRET_KEY,
+    publicKey: envVars.PAYSTACK_PUBLIC_KEY,
   },
 };
