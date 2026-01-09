@@ -1,5 +1,5 @@
 const userManagementService = require('../services/userManagementService');
-const { createError } = require('../utils/errors');
+const ApiError = require('../utils/ApiError');
 
 /**
  * Get all users with filtering
@@ -41,7 +41,7 @@ const getById = async (req, res, next) => {
     const user = await userManagementService.getUserById(id);
 
     if (!user) {
-      throw createError('User not found', 404);
+      throw new ApiError(404, 'User not found');
     }
 
     res.status(200).json({
@@ -62,7 +62,7 @@ const search = async (req, res, next) => {
     const { q, limit } = req.query;
 
     if (!q || q.length < 2) {
-      throw createError('Search query must be at least 2 characters', 400);
+      throw new ApiError(400, 'Search query must be at least 2 characters');
     }
 
     const users = await userManagementService.searchUsers(q, parseInt(limit) || 10);

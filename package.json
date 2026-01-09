@@ -5,7 +5,10 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "seed:admin": "node src/scripts/seedAdmin.js"
+    "build": "echo 'No build step required for Node.js' && npm run lint:check",
+    "lint:check": "node --check src/**/*.js src/*.js",
+    "seed:admin": "node src/scripts/seedAdmin.js",
+    "verify": "node -e \"require('./src/app.js'); console.log('✅ All modules load successfully')\""
   },
   "keywords": [
     "dfx",
