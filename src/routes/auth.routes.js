@@ -3,7 +3,13 @@ const authController = require('../controllers/authController');
 const validate = require('../middleware/validate');
 const authMiddleware = require('../middleware/auth');
 const { authLimiter } = require('../middleware/rateLimiter');
-const { registerSchema, loginSchema } = require('../validators/auth.validator');
+const { 
+  registerSchema, 
+  loginSchema,
+  forgotPasswordSchema,
+  verifyOtpSchema,
+  resetPasswordSchema
+} = require('../validators/auth.validator');
 
 const router = express.Router();
 
@@ -14,6 +20,11 @@ router.post('/register', validate(registerSchema), authController.register);
 router.post('/login', validate(loginSchema), authController.login);
 router.post('/refresh', authController.refresh);
 router.post('/logout', authController.logout);
+
+// Password reset routes
+router.post('/forgot-password', validate(forgotPasswordSchema), authController.forgotPassword);
+router.post('/verify-otp', validate(verifyOtpSchema), authController.verifyOtp);
+router.post('/reset-password', validate(resetPasswordSchema), authController.resetPassword);
 
 // Protected routes
 router.get('/me', authMiddleware, authController.getMe);

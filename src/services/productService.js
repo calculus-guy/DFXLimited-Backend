@@ -6,7 +6,8 @@ const getProducts = async (filters = {}, pagination = {}) => {
   const { category, inStock, search } = filters;
   const { page = 1, limit = 10 } = pagination;
 
-  const query = { isActive: true };
+  // Exclude soft-deleted products
+  const query = { isActive: true, isDeleted: { $ne: true } };
 
   if (category) {
     query.category = category;
@@ -45,7 +46,7 @@ const getProducts = async (filters = {}, pagination = {}) => {
 };
 
 const getProductById = async (id) => {
-  const product = await Product.findOne({ _id: id, isActive: true });
+  const product = await Product.findOne({ _id: id, isActive: true, isDeleted: { $ne: true } });
   
   if (!product) {
     throw new ApiError(404, 'Product not found');
@@ -95,15 +96,14 @@ const updateProduct = async (id, data, adminId = null) => {
 };
 
 const deleteProduct = async (id, adminId = null) => {
-  const product = await Product.findByIdAndUpdate(
-    id,
-    { isActive: false },
-    { new: true }
-  );
+  const product = await Product.findById(id);
 
-  if (!product) {
+  if (!product || product.isDeleted) {
     throw new ApiError(404, 'Product not found');
   }
+
+  // Use soft delete method
+  await product.softDelete();
 
   // Log activity
   logActivity({
@@ -135,6 +135,7 @@ const getProductsByIds = async (productIds) => {
   const products = await Product.find({
     _id: { $in: productIds },
     isActive: true,
+    isDeleted: { $ne: true },
   });
 
   return products;

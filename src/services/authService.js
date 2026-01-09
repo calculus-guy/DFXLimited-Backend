@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const tokenService = require('./tokenService');
 const ApiError = require('../utils/ApiError');
-const { sendWelcomeEmail } = require('./emailService');
+const { sendWelcomeEmail, sendPasswordResetOtp, sendPasswordResetSuccess } = require('./emailService');
 const { logActivity } = require('./activityLogService');
 
 const register = async (userData, ipAddress = null) => {
@@ -125,10 +125,102 @@ const getUserById = async (userId) => {
   return user;
 };
 
+const forgotPassword = async (email, ipAddress = null) => {
+  const user = await User.findOne({ email });
+  
+  if (!user) {
+    return { message: 'If the email exists, an OTP has been sent' };
+  }
+
+  const otp = user.generatePasswordResetOtp();
+  await user.save();
+
+  // Send OTP email
+  sendPasswordResetOtp(user, otp).catch((err) => {
+    console.error('Failed to send password reset OTP:', err.message);
+  });
+
+  // Log activity
+  logActivity({
+    action: 'PASSWORD_RESET_REQUESTED',
+    actor: user._id,
+    actorType: 'USER',
+    targetType: 'USER',
+    targetId: user._id,
+    metadata: { email: user.email },
+    ipAddress
+  });
+
+  return { message: 'If the email exists, an OTP has been sent' };
+};
+
+const verifyOtp = async (email, otp) => {
+  const user = await User.findOne({ email }).select('+passwordResetOtp +passwordResetOtpExpires +passwordResetAttempts');
+  
+  if (!user) {
+    throw new ApiError(400, 'Invalid or expired OTP');
+  }
+
+  const isValid = user.verifyPasswordResetOtp(otp);
+  await user.save();
+
+  if (!isValid) {
+    throw new ApiError(400, 'Invalid or expired OTP');
+  }
+
+  return { message: 'OTP verified successfully', verified: true };
+};
+
+const resetPassword = async (email, otp, newPassword, ipAddress = null) => {
+  const user = await User.findOne({ email }).select('+passwordResetOtp +passwordResetOtpExpires +passwordResetAttempts +password');
+  
+  if (!user) {
+    throw new ApiError(400, 'Invalid or expired OTP');
+  }
+
+  const isValid = user.verifyPasswordResetOtp(otp);
+  
+  if (!isValid) {
+    await user.save();
+    throw new ApiError(400, 'Invalid or expired OTP');
+  }
+
+  // Update password
+  user.password = newPassword;
+  user.passwordChangedAt = new Date();
+  user.clearPasswordReset();
+  
+  // Invalidate all refresh tokens by clearing the stored one
+  user.refreshToken = null;
+  
+  await user.save();
+
+  // Send success email
+  sendPasswordResetSuccess(user).catch((err) => {
+    console.error('Failed to send password reset success email:', err.message);
+  });
+
+  // Log activity
+  logActivity({
+    action: 'PASSWORD_RESET_COMPLETED',
+    actor: user._id,
+    actorType: 'USER',
+    targetType: 'USER',
+    targetId: user._id,
+    metadata: { email: user.email },
+    ipAddress
+  });
+
+  return { message: 'Password reset successfully' };
+};
+
 module.exports = {
   register,
   login,
   refreshTokens,
   logout,
   getUserById,
+  forgotPassword,
+  verifyOtp,
+  resetPassword,
 };

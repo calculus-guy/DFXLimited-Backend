@@ -99,10 +99,48 @@ const getMe = catchAsync(async (req, res) => {
   });
 });
 
+const forgotPassword = catchAsync(async (req, res) => {
+  const { email } = req.body;
+  const ipAddress = req.ip || req.connection.remoteAddress;
+  const result = await authService.forgotPassword(email, ipAddress);
+
+  res.status(200).json({
+    success: true,
+    message: result.message,
+  });
+});
+
+const verifyOtp = catchAsync(async (req, res) => {
+  const { email, otp } = req.body;
+  const result = await authService.verifyOtp(email, otp);
+
+  res.status(200).json({
+    success: true,
+    message: result.message,
+    data: {
+      verified: result.verified,
+    },
+  });
+});
+
+const resetPassword = catchAsync(async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+  const ipAddress = req.ip || req.connection.remoteAddress;
+  const result = await authService.resetPassword(email, otp, newPassword, ipAddress);
+
+  res.status(200).json({
+    success: true,
+    message: result.message,
+  });
+});
+
 module.exports = {
   register,
   login,
   refresh,
   logout,
   getMe,
+  forgotPassword,
+  verifyOtp,
+  resetPassword,
 };

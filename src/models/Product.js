@@ -37,6 +37,14 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -45,7 +53,7 @@ const productSchema = new mongoose.Schema(
 
 // Indexes for better query performance
 productSchema.index({ category: 1 });
-productSchema.index({ isActive: 1 });
+productSchema.index({ isActive: 1, isDeleted: 1 });
 productSchema.index({ name: 'text', description: 'text' });
 
 // Update stockStatus based on stockQuantity
@@ -57,6 +65,27 @@ productSchema.pre('save', function (next) {
   }
   next();
 });
+
+/**
+ * Soft delete method
+ */
+productSchema.methods.softDelete = async function () {
+  this.isDeleted = true;
+  this.isActive = false;
+  this.deletedAt = new Date();
+  return this.save();
+};
+
+/**
+ * Static method to find active (non-deleted) products
+ */
+productSchema.statics.findActive = function (query = {}) {
+  return this.find({
+    ...query,
+    isActive: true,
+    isDeleted: false
+  });
+};
 
 const Product = mongoose.model('Product', productSchema);
 

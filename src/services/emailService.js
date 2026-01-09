@@ -619,6 +619,115 @@ const sendContactInquiryNotification = async (contact) => {
   return sendEmail(config.admin.email, subject, html);
 };
 
+/**
+ * Password reset OTP email
+ */
+const sendPasswordResetOtp = async (user, otp) => {
+  const subject = 'Password Reset OTP - DFX Limited';
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #dc2626; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        .otp-box { background: white; padding: 30px; border-radius: 8px; margin: 20px 0; text-align: center; border: 2px dashed #dc2626; }
+        .otp-code { font-size: 36px; font-weight: bold; color: #dc2626; letter-spacing: 8px; }
+        .warning { background: #fef2f2; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626; }
+        .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Password Reset Request 🔐</h1>
+        </div>
+        <div class="content">
+          <h2>Hi ${user.name},</h2>
+          <p>We received a request to reset your password. Use the OTP below to proceed:</p>
+          
+          <div class="otp-box">
+            <p style="margin: 0; color: #6b7280;">Your OTP Code</p>
+            <p class="otp-code">${otp}</p>
+            <p style="margin: 0; color: #6b7280; font-size: 14px;">Valid for 15 minutes</p>
+          </div>
+
+          <div class="warning">
+            <p style="margin: 0;"><strong> Security Notice:</strong></p>
+            <p style="margin: 5px 0 0 0;">If you didn't request this password reset, please ignore this email. Your password will remain unchanged.</p>
+          </div>
+
+          <p>Do not share this OTP with anyone. DFX staff will never ask for your OTP.</p>
+          <p>Best regards,<br>The DFX Team</p>
+        </div>
+        <div class="footer">
+          <p>© ${new Date().getFullYear()} DFX Limited. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail(user.email, subject, html);
+};
+
+/**
+ * Password reset success confirmation email
+ */
+const sendPasswordResetSuccess = async (user) => {
+  const subject = 'Password Changed Successfully - DFX Limited';
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #10b981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        .success-box { background: #ecfdf5; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; border: 2px solid #10b981; }
+        .warning { background: #fef2f2; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626; }
+        .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Password Changed! </h1>
+        </div>
+        <div class="content">
+          <h2>Hi ${user.name},</h2>
+          
+          <div class="success-box">
+            <p style="font-size: 48px; margin: 0;">🔒</p>
+            <h3 style="margin: 10px 0;">Your password has been successfully changed</h3>
+            <p style="margin: 0; color: #6b7280;">Changed on: ${new Date().toLocaleString()}</p>
+          </div>
+
+          <p>You can now log in with your new password.</p>
+
+          <div class="warning">
+            <p style="margin: 0;"><strong> Didn't make this change?</strong></p>
+            <p style="margin: 5px 0 0 0;">If you didn't change your password, please contact us immediately at ${config.admin.email}</p>
+          </div>
+
+          <p>Best regards,<br>The DFX Team</p>
+        </div>
+        <div class="footer">
+          <p>© ${new Date().getFullYear()} DFX Limited. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail(user.email, subject, html);
+};
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
@@ -631,4 +740,6 @@ module.exports = {
   sendNewMaterialNotification,
   sendAdminCourseRegistrationAlert,
   sendContactInquiryNotification,
+  sendPasswordResetOtp,
+  sendPasswordResetSuccess,
 };
