@@ -1,1 +1,1 @@
-Update the email service with real mail. Important
+The validators for the contact and products needs update cause the category's are too strict

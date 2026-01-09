@@ -552,6 +552,73 @@ const sendAdminCourseRegistrationAlert = async (registration, course, user) => {
   return sendEmail(config.admin.email, subject, html);
 };
 
+/**
+ * Contact inquiry notification for admin
+ */
+const sendContactInquiryNotification = async (contact) => {
+  const subject = `📩 New Contact Inquiry - ${contact.serviceTypeDisplay || 'General'}`;
+  
+  const serviceTypeDisplay = {
+    'WEB_APP': 'Web Application',
+    'MOBILE_APP': 'Mobile Application',
+    'ERP': 'ERP System',
+    'CUSTOM_SOFTWARE': 'Custom Software',
+    'ECOMMERCE': 'E-commerce',
+    'OTHER': 'Other'
+  };
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #059669; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        .info-box { background: white; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #059669; }
+        .message-box { background: white; padding: 20px; border-radius: 8px; margin: 15px 0; border: 1px solid #e5e7eb; }
+        .label { font-weight: bold; color: #374151; }
+        .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>New Contact Inquiry 📩</h1>
+        </div>
+        <div class="content">
+          <p>A new inquiry has been submitted through the contact form.</p>
+          
+          <div class="info-box">
+            <h3>Contact Details</h3>
+            <p><span class="label">Name:</span> ${contact.name}</p>
+            <p><span class="label">Email:</span> ${contact.email}</p>
+            ${contact.phone ? `<p><span class="label">Phone:</span> ${contact.phone}</p>` : ''}
+            ${contact.company ? `<p><span class="label">Company:</span> ${contact.company}</p>` : ''}
+            ${contact.serviceType ? `<p><span class="label">Service Type:</span> ${serviceTypeDisplay[contact.serviceType] || contact.serviceType}</p>` : ''}
+          </div>
+
+          <div class="message-box">
+            <h3>Message</h3>
+            <p>${contact.message.replace(/\n/g, '<br>')}</p>
+          </div>
+
+          <p><span class="label">Submitted:</span> ${new Date(contact.createdAt).toLocaleString()}</p>
+          
+          <p style="margin-top: 20px;">Please respond to this inquiry as soon as possible.</p>
+        </div>
+        <div class="footer">
+          <p>© ${new Date().getFullYear()} DFX Limited. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail(config.admin.email, subject, html);
+};
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
@@ -563,4 +630,5 @@ module.exports = {
   sendCoursePaymentReceipt,
   sendNewMaterialNotification,
   sendAdminCourseRegistrationAlert,
+  sendContactInquiryNotification,
 };
