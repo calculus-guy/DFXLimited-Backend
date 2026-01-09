@@ -122,7 +122,7 @@ npm start
 
 ## API Documentation
 
-See [API_DOCUMENTATION.md](../API_DOCUMENTATION.md) for complete API reference.
+See [API_DOCUMENTATION.md](../.kiro/API_DOCUMENTATION.md) for complete API reference.
 
 ## Project Structure
 
