@@ -7,7 +7,6 @@ const { registerSchema, loginSchema } = require('../validators/auth.validator');
 
 const router = express.Router();
 
-// Apply rate limiting to auth routes
 router.use(authLimiter);
 
 // Public routes

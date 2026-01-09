@@ -1,7 +1,6 @@
 const Joi = require('joi');
 const path = require('path');
 
-// Load .env file
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
 const envSchema = Joi.object({
@@ -12,7 +11,7 @@ const envSchema = Joi.object({
   MONGODB_URI: Joi.string().required().description('MongoDB connection URI'),
   JWT_ACCESS_SECRET: Joi.string().required().description('JWT access token secret'),
   JWT_REFRESH_SECRET: Joi.string().required().description('JWT refresh token secret'),
-  CORS_ORIGIN: Joi.string().default('http://localhost:3000'),
+  CORS_ORIGIN: Joi.string().default('http://localhost:5173'),
   ADMIN_EMAIL: Joi.string().email().required().description('Admin email for seeding'),
   ADMIN_PASSWORD: Joi.string().min(8).required().description('Admin password for seeding'),
 }).unknown();

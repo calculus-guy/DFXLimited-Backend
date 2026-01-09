@@ -4,12 +4,10 @@ const User = require('../models/User');
 
 const seedAdmin = async () => {
   try {
-    // Connect to database
     await connectDB();
 
     const { email, password } = config.admin;
 
-    // Check if admin already exists
     const existingAdmin = await User.findOne({ email });
     
     if (existingAdmin) {
@@ -17,7 +15,6 @@ const seedAdmin = async () => {
       process.exit(0);
     }
 
-    // Create admin user
     const admin = await User.create({
       email,
       password,
