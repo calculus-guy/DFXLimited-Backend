@@ -179,6 +179,122 @@ const getCourseRegistrations = async (courseId, pagination = {}) => {
   };
 };
 
+/**
+ * Admin: Grant course access (manual enrollment)
+ * Used for complimentary access, offline payments, etc.
+ */
+const adminGrantAccess = async (registrationId, adminId, reason = null) => {
+  const registration = await CourseRegistration.findById(registrationId)
+    .populate('courseId')
+    .populate('userId', 'name email');
+
+  if (!registration) {
+    throw new ApiError(404, 'Registration not found');
+  }
+
+  if (['PAID', 'ACTIVE'].includes(registration.status)) {
+    throw new ApiError(400, 'User already has access to this course');
+  }
+
+  // Generate manual payment reference
+  const manualRef = `MANUAL_GRANT_${Date.now()}_${registrationId.toString().slice(-6)}`;
+
+  registration.status = 'ACTIVE';
+  registration.paymentRef = manualRef;
+  registration.paidAt = new Date();
+  await registration.save();
+
+  // Log activity
+  logActivity({
+    action: 'COURSE_ACCESS_GRANTED',
+    actor: adminId,
+    actorType: 'ADMIN',
+    targetType: 'REGISTRATION',
+    targetId: registration._id,
+    metadata: { 
+      courseId: registration.courseId._id,
+      courseName: registration.courseId.title,
+      userId: registration.userId._id,
+      userName: registration.userId.name,
+      reason: reason || 'Manual access grant'
+    }
+  });
+
+  return registration;
+};
+
+/**
+ * Admin: Revoke course access
+ */
+const adminRevokeAccess = async (registrationId, adminId, reason = null) => {
+  const registration = await CourseRegistration.findById(registrationId)
+    .populate('courseId')
+    .populate('userId', 'name email');
+
+  if (!registration) {
+    throw new ApiError(404, 'Registration not found');
+  }
+
+  if (!['PAID', 'ACTIVE'].includes(registration.status)) {
+    throw new ApiError(400, 'User does not have active access to revoke');
+  }
+
+  registration.status = 'CANCELLED';
+  await registration.save();
+
+  // Log activity
+  logActivity({
+    action: 'COURSE_ACCESS_REVOKED',
+    actor: adminId,
+    actorType: 'ADMIN',
+    targetType: 'REGISTRATION',
+    targetId: registration._id,
+    metadata: { 
+      courseId: registration.courseId._id,
+      courseName: registration.courseId.title,
+      userId: registration.userId._id,
+      userName: registration.userId.name,
+      reason: reason || 'Manual access revocation'
+    }
+  });
+
+  return registration;
+};
+
+/**
+ * Admin: Get all registrations with filters
+ */
+const getAllRegistrations = async (filters = {}, pagination = {}) => {
+  const { status, courseId, userId } = filters;
+  const { page = 1, limit = 10 } = pagination;
+  const skip = (page - 1) * limit;
+
+  const query = {};
+  if (status) query.status = status;
+  if (courseId) query.courseId = courseId;
+  if (userId) query.userId = userId;
+
+  const [registrations, total] = await Promise.all([
+    CourseRegistration.find(query)
+      .populate('courseId', 'title price')
+      .populate('userId', 'name email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit)),
+    CourseRegistration.countDocuments(query)
+  ]);
+
+  return {
+    registrations,
+    pagination: {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total,
+      pages: Math.ceil(total / limit)
+    }
+  };
+};
+
 module.exports = {
   registerForCourse,
   getRegistrationById,
@@ -187,5 +303,8 @@ module.exports = {
   updateRegistrationStatus,
   isUserEnrolled,
   getEnrolledStudents,
-  getCourseRegistrations
+  getCourseRegistrations,
+  adminGrantAccess,
+  adminRevokeAccess,
+  getAllRegistrations
 };

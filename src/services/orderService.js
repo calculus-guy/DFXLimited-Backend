@@ -229,6 +229,96 @@ const markOrderAsPaid = async (orderId, paymentRef) => {
   return order;
 };
 
+/**
+ * Admin: Manually mark order as paid (reconciliation)
+ * Used for offline payments, bank transfers, etc.
+ */
+const adminMarkOrderPaid = async (orderId, adminId, reason = null) => {
+  const order = await Order.findById(orderId);
+
+  if (!order) {
+    throw new ApiError(404, 'Order not found');
+  }
+
+  if (order.status === 'PAID') {
+    throw new ApiError(400, 'Order is already marked as paid');
+  }
+
+  if (order.status === 'CANCELLED') {
+    throw new ApiError(400, 'Cannot mark a cancelled order as paid');
+  }
+
+  // Generate manual payment reference
+  const manualRef = `MANUAL_${Date.now()}_${orderId.toString().slice(-6)}`;
+
+  order.status = 'PAID';
+  order.paymentRef = manualRef;
+  await order.save();
+
+  // Decrement stock for each item
+  for (const item of order.items) {
+    await productService.updateStock(item.productId, item.quantity);
+  }
+
+  // Log activity
+  logActivity({
+    action: 'ORDER_MANUALLY_PAID',
+    actor: adminId,
+    actorType: 'ADMIN',
+    targetType: 'ORDER',
+    targetId: order._id,
+    metadata: { 
+      orderNumber: order.orderNumber, 
+      paymentRef: manualRef, 
+      amount: order.totalAmount,
+      reason: reason || 'Manual reconciliation'
+    }
+  });
+
+  // Send payment receipt email
+  try {
+    await emailService.sendPaymentReceipt(order, { reference: manualRef, amount: order.totalAmount });
+  } catch (error) {
+    console.error('Failed to send payment receipt:', error.message);
+  }
+
+  return order;
+};
+
+/**
+ * Admin: Mark order as refunded
+ */
+const adminMarkOrderRefunded = async (orderId, adminId, reason = null) => {
+  const order = await Order.findById(orderId);
+
+  if (!order) {
+    throw new ApiError(404, 'Order not found');
+  }
+
+  if (order.status === 'CANCELLED') {
+    throw new ApiError(400, 'Order is already cancelled');
+  }
+
+  order.status = 'CANCELLED';
+  await order.save();
+
+  // Log activity
+  logActivity({
+    action: 'ORDER_REFUNDED',
+    actor: adminId,
+    actorType: 'ADMIN',
+    targetType: 'ORDER',
+    targetId: order._id,
+    metadata: { 
+      orderNumber: order.orderNumber, 
+      amount: order.totalAmount,
+      reason: reason || 'Manual refund'
+    }
+  });
+
+  return order;
+};
+
 module.exports = {
   createOrder,
   getOrderById,
@@ -237,4 +327,6 @@ module.exports = {
   getAllOrders,
   updateOrderStatus,
   markOrderAsPaid,
+  adminMarkOrderPaid,
+  adminMarkOrderRefunded,
 };

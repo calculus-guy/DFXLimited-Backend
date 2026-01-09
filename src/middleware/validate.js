@@ -1,7 +1,9 @@
 const ApiError = require('../utils/ApiError');
 
-const validate = (schema) => (req, res, next) => {
-  const { error, value } = schema.validate(req.body, {
+const validate = (schema, source = 'body') => (req, res, next) => {
+  const dataToValidate = source === 'query' ? req.query : req.body;
+  
+  const { error, value } = schema.validate(dataToValidate, {
     abortEarly: false,
     stripUnknown: true,
   });
@@ -17,8 +19,13 @@ const validate = (schema) => (req, res, next) => {
     return next(apiError);
   }
 
-  // Replace body with sanitized value
-  req.body = value;
+  // Replace with sanitized value
+  if (source === 'query') {
+    req.query = value;
+  } else {
+    req.body = value;
+  }
+  
   next();
 };
 
