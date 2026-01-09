@@ -19,6 +19,12 @@ const envSchema = Joi.object({
   CLOUDINARY_CLOUD_NAME: Joi.string().required().description('Cloudinary cloud name'),
   CLOUDINARY_API_KEY: Joi.string().required().description('Cloudinary API key'),
   CLOUDINARY_API_SECRET: Joi.string().required().description('Cloudinary API secret'),
+  SMTP_HOST: Joi.string().default('smtp.gmail.com'),
+  SMTP_PORT: Joi.number().default(587),
+  SMTP_USER: Joi.string().required().description('SMTP email address'),
+  SMTP_PASS: Joi.string().required().description('SMTP password or app password'),
+  EMAIL_FROM_NAME: Joi.string().default('DFX Limited'),
+  EMAIL_FROM_ADDRESS: Joi.string().email().required().description('From email address'),
 }).unknown();
 
 const { value: envVars, error } = envSchema.validate(process.env);
@@ -49,5 +55,22 @@ module.exports = {
   paystack: {
     secretKey: envVars.PAYSTACK_SECRET_KEY,
     publicKey: envVars.PAYSTACK_PUBLIC_KEY,
+  },
+  cloudinary: {
+    cloudName: envVars.CLOUDINARY_CLOUD_NAME,
+    apiKey: envVars.CLOUDINARY_API_KEY,
+    apiSecret: envVars.CLOUDINARY_API_SECRET,
+  },
+  email: {
+    smtp: {
+      host: envVars.SMTP_HOST,
+      port: envVars.SMTP_PORT,
+      user: envVars.SMTP_USER,
+      pass: envVars.SMTP_PASS,
+    },
+    from: {
+      name: envVars.EMAIL_FROM_NAME,
+      address: envVars.EMAIL_FROM_ADDRESS,
+    },
   },
 };

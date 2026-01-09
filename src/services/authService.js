@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const tokenService = require('./tokenService');
 const ApiError = require('../utils/ApiError');
+const { sendWelcomeEmail } = require('./emailService');
 
 const register = async (userData) => {
   const { email, password, name } = userData;
@@ -24,6 +25,10 @@ const register = async (userData) => {
 
   user.refreshToken = tokenService.hashToken(refreshToken);
   await user.save();
+
+  sendWelcomeEmail(user).catch((err) => {
+    console.error('Failed to send welcome email:', err.message);
+  });
 
   return { user, accessToken, refreshToken };
 };

@@ -3,14 +3,12 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
 const config = require('./env');
 
-// Configure Cloudinary
 cloudinary.config({
   cloud_name: config.cloudinary.cloudName,
   api_key: config.cloudinary.apiKey,
   api_secret: config.cloudinary.apiSecret,
 });
 
-// Storage for product images
 const productImageStorage = new CloudinaryStorage({
   cloudinary,
   params: {
@@ -20,7 +18,6 @@ const productImageStorage = new CloudinaryStorage({
   },
 });
 
-// Storage for course materials (PDFs)
 const courseMaterialStorage = new CloudinaryStorage({
   cloudinary,
   params: {
@@ -30,7 +27,6 @@ const courseMaterialStorage = new CloudinaryStorage({
   },
 });
 
-// Multer upload instances
 const uploadProductImage = multer({
   storage: productImageStorage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
