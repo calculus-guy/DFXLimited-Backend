@@ -42,7 +42,7 @@ module.exports = {
   jwt: {
     accessSecret: envVars.JWT_ACCESS_SECRET,
     refreshSecret: envVars.JWT_REFRESH_SECRET,
-    accessExpiresIn: '15m',
+    accessExpiresIn: '1d',
     refreshExpiresIn: '7d',
   },
   cors: {
