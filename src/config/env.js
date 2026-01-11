@@ -46,7 +46,14 @@ module.exports = {
     refreshExpiresIn: '7d',
   },
   cors: {
-    origin: envVars.CORS_ORIGIN.split(',').map((origin) => origin.trim()),
+    origin: [
+      'https://dfx-limited-frontend.vercel.app',
+      'https://www.dfxlimited.com',
+      'https://dfxlimited.com',
+      'https://dfx-limited.netlify.app',
+      // Include env origins for local dev
+      ...envVars.CORS_ORIGIN.split(',').map((origin) => origin.trim()),
+    ].filter((v, i, a) => v && a.indexOf(v) === i), // Remove duplicates and empty strings
   },
   admin: {
     email: envVars.ADMIN_EMAIL,
