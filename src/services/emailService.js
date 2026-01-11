@@ -1,39 +1,28 @@
-const nodemailer = require('nodemailer');
+const SibApiV3Sdk = require('@getbrevo/brevo');
 const { config } = require('../config');
 
-const transporter = nodemailer.createTransport({
-  host: config.email.smtp.host,
-  port: config.email.smtp.port,
-  secure: false, // Brevo uses STARTTLS on port 587
-  auth: {
-    user: config.email.smtp.user,
-    pass: config.email.smtp.pass,
-  },
-});
+// Initialize Brevo API client
+const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+apiInstance.setApiKey(SibApiV3Sdk.TransactionalEmailsApiApiKeys.apiKey, config.brevo.apiKey);
 
-// Verify transporter connection
-transporter.verify((error, success) => {
-  if (error) {
-    console.error('❌ Email service connection failed:', error.message);
-  } else {
-    console.log('✅ Email service is ready');
-  }
-});
+console.log('✅ Brevo email service initialized');
 
 /**
- * Send email helper
+ * Send email helper using Brevo API
  */
 const sendEmail = async (to, subject, html) => {
   try {
-    const mailOptions = {
-      from: `"${config.email.from.name}" <${config.email.from.address}>`,
-      to,
-      subject,
-      html,
+    const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+    sendSmtpEmail.sender = { 
+      name: config.email.from.name, 
+      email: config.email.from.address 
     };
+    sendSmtpEmail.to = [{ email: to }];
+    sendSmtpEmail.subject = subject;
+    sendSmtpEmail.htmlContent = html;
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`📧 Email sent to ${to}: ${info.messageId}`);
+    const response = await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log(`📧 Email sent to ${to}: ${response.messageId}`);
     return true;
   } catch (error) {
     console.error(`❌ Failed to send email to ${to}:`, error.message);
@@ -70,7 +59,7 @@ const sendWelcomeEmail = async (user) => {
           <p>With your new account, you can:</p>
           <ul>
             <li>🎓 Enroll in our professional IT training courses</li>
-            <li>📱 Shop for the latest gadgets and electronics</li>
+            <li>� EShop for the latest gadgets and electronics</li>
             <li>💼 Explore our IT Solutions services</li>
           </ul>
           <p>If you have any questions, feel free to reach out to us.</p>
@@ -86,6 +75,7 @@ const sendWelcomeEmail = async (user) => {
 
   return sendEmail(user.email, subject, html);
 };
+
 
 /**
  * Order confirmation email
@@ -175,7 +165,6 @@ const sendOrderConfirmation = async (order) => {
  */
 const sendPaymentReceipt = async (order, payment) => {
   const subject = `Payment Received - ${order.orderNumber}`;
-  
   const html = `
     <!DOCTYPE html>
     <html>
@@ -221,15 +210,16 @@ const sendPaymentReceipt = async (order, payment) => {
   return sendEmail(order.checkoutData.email, subject, html);
 };
 
+
 /**
  * Admin notification for new order
  */
 const sendAdminNotification = async (order) => {
   const subject = `🛒 New Order - ${order.orderNumber}`;
   
-  const itemsHtml = order.items.map(item => `
-    <li>${item.productName} x ${item.quantity} - ₦${(item.subtotal / 100).toLocaleString()}</li>
-  `).join('');
+  const itemsHtml = order.items.map(item => 
+    `<li>${item.productName} x ${item.quantity} - ₦${(item.subtotal / 100).toLocaleString()}</li>`
+  ).join('');
 
   const html = `
     <!DOCTYPE html>
@@ -256,7 +246,7 @@ const sendAdminNotification = async (order) => {
             <p><strong>Date:</strong> ${new Date(order.createdAt).toLocaleString()}</p>
             <p><strong>Status:</strong> ${order.status}</p>
           </div>
-
+          
           <div class="info-box">
             <h3>Customer Information</h3>
             <p><strong>Name:</strong> ${order.checkoutData.name}</p>
@@ -264,13 +254,13 @@ const sendAdminNotification = async (order) => {
             <p><strong>Phone:</strong> ${order.checkoutData.phone}</p>
             <p><strong>Address:</strong> ${order.checkoutData.address}</p>
           </div>
-
+          
           <div class="info-box">
             <h3>Items Ordered</h3>
             <ul>${itemsHtml}</ul>
             <p class="total">Total: ₦${(order.totalAmount / 100).toLocaleString()}</p>
           </div>
-
+          
           <p>Please process this order as soon as possible.</p>
         </div>
       </div>
@@ -286,7 +276,6 @@ const sendAdminNotification = async (order) => {
  */
 const sendDispatchNotification = async (order) => {
   const subject = `Your Order is On Its Way! - ${order.orderNumber}`;
-  
   const html = `
     <!DOCTYPE html>
     <html>
@@ -315,7 +304,7 @@ const sendDispatchNotification = async (order) => {
             <h3>Delivery Address</h3>
             <p>${order.checkoutData.address}</p>
           </div>
-
+          
           <p>Our delivery team will contact you at <strong>${order.checkoutData.phone}</strong> when they arrive.</p>
           <p>Thank you for shopping with DFX Limited!</p>
           <p>Best regards,<br>The DFX Team</p>
@@ -331,12 +320,12 @@ const sendDispatchNotification = async (order) => {
   return sendEmail(order.checkoutData.email, subject, html);
 };
 
+
 /**
  * Course registration confirmation email
  */
 const sendCourseRegistrationConfirmation = async (registration, course, user) => {
   const subject = `Course Registration - ${course.title}`;
-  
   const html = `
     <!DOCTYPE html>
     <html>
@@ -366,10 +355,9 @@ const sendCourseRegistrationConfirmation = async (registration, course, user) =>
             ${course.duration ? `<p><strong>Duration:</strong> ${course.duration}</p>` : ''}
             <p class="price">Price: ₦${(course.price / 100).toLocaleString()}</p>
           </div>
-
+          
           <p><strong>Status:</strong> ${registration.status}</p>
           <p>Please complete your payment to gain access to course materials.</p>
-          
           <p>Best regards,<br>The DFX Team</p>
         </div>
         <div class="footer">
@@ -389,7 +377,6 @@ const sendCourseRegistrationConfirmation = async (registration, course, user) =>
 const sendCoursePaymentReceipt = async (registration, course, payment) => {
   const user = registration.userId;
   const subject = `Payment Confirmed - ${course.title}`;
-  
   const html = `
     <!DOCTYPE html>
     <html>
@@ -421,13 +408,13 @@ const sendCoursePaymentReceipt = async (registration, course, payment) => {
             <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
             <p class="amount">Amount Paid: ₦${(payment.amount / 100).toLocaleString()}</p>
           </div>
-
+          
           <div class="access-box">
             <h3>🎉 You're All Set!</h3>
             <p>You now have full access to course materials.</p>
             <p>Log in to your account to view and download materials.</p>
           </div>
-
+          
           <p>If you have any questions, feel free to reach out to us.</p>
           <p>Best regards,<br>The DFX Team</p>
         </div>
@@ -442,12 +429,12 @@ const sendCoursePaymentReceipt = async (registration, course, payment) => {
   return sendEmail(user.email, subject, html);
 };
 
+
 /**
  * New material notification for enrolled students
  */
 const sendNewMaterialNotification = async (material, course, students) => {
   const subject = `New Material Available - ${course.title}`;
-  
   const html = `
     <!DOCTYPE html>
     <html>
@@ -476,7 +463,7 @@ const sendNewMaterialNotification = async (material, course, students) => {
             ${material.label ? `<p><strong>Topic:</strong> ${material.label}</p>` : ''}
             <p><strong>Uploaded:</strong> ${new Date(material.createdAt).toLocaleDateString()}</p>
           </div>
-
+          
           <p>Log in to your account to download this material.</p>
           <p>Best regards,<br>The DFX Team</p>
         </div>
@@ -492,7 +479,7 @@ const sendNewMaterialNotification = async (material, course, students) => {
   const emailPromises = students.map(student => 
     sendEmail(student.userId.email, subject, html)
   );
-
+  
   try {
     await Promise.all(emailPromises);
     console.log(`📧 New material notification sent to ${students.length} students`);
@@ -508,7 +495,6 @@ const sendNewMaterialNotification = async (material, course, students) => {
  */
 const sendAdminCourseRegistrationAlert = async (registration, course, user) => {
   const subject = `🎓 New Course Registration - ${course.title}`;
-  
   const html = `
     <!DOCTYPE html>
     <html>
@@ -535,13 +521,13 @@ const sendAdminCourseRegistrationAlert = async (registration, course, user) => {
             <p><strong>Status:</strong> ${registration.status}</p>
             <p class="amount">Amount: ₦${(course.price / 100).toLocaleString()}</p>
           </div>
-
+          
           <div class="info-box">
             <h3>Student Information</h3>
             <p><strong>Name:</strong> ${user.name}</p>
             <p><strong>Email:</strong> ${user.email}</p>
           </div>
-
+          
           <p>A new student has registered and paid for this course.</p>
         </div>
       </div>
@@ -551,6 +537,7 @@ const sendAdminCourseRegistrationAlert = async (registration, course, user) => {
 
   return sendEmail(config.admin.email, subject, html);
 };
+
 
 /**
  * Contact inquiry notification for admin
@@ -598,14 +585,13 @@ const sendContactInquiryNotification = async (contact) => {
             ${contact.company ? `<p><span class="label">Company:</span> ${contact.company}</p>` : ''}
             ${contact.serviceType ? `<p><span class="label">Service Type:</span> ${serviceTypeDisplay[contact.serviceType] || contact.serviceType}</p>` : ''}
           </div>
-
+          
           <div class="message-box">
             <h3>Message</h3>
             <p>${contact.message.replace(/\n/g, '<br>')}</p>
           </div>
-
-          <p><span class="label">Submitted:</span> ${new Date(contact.createdAt).toLocaleString()}</p>
           
+          <p><span class="label">Submitted:</span> ${new Date(contact.createdAt).toLocaleString()}</p>
           <p style="margin-top: 20px;">Please respond to this inquiry as soon as possible.</p>
         </div>
         <div class="footer">
@@ -619,12 +605,12 @@ const sendContactInquiryNotification = async (contact) => {
   return sendEmail(config.admin.email, subject, html);
 };
 
+
 /**
  * Password reset OTP email
  */
 const sendPasswordResetOtp = async (user, otp) => {
   const subject = 'Password Reset OTP - DFX Limited';
-  
   const html = `
     <!DOCTYPE html>
     <html>
@@ -654,12 +640,12 @@ const sendPasswordResetOtp = async (user, otp) => {
             <p class="otp-code">${otp}</p>
             <p style="margin: 0; color: #6b7280; font-size: 14px;">Valid for 15 minutes</p>
           </div>
-
+          
           <div class="warning">
-            <p style="margin: 0;"><strong> Security Notice:</strong></p>
+            <p style="margin: 0;"><strong>⚠️ Security Notice:</strong></p>
             <p style="margin: 5px 0 0 0;">If you didn't request this password reset, please ignore this email. Your password will remain unchanged.</p>
           </div>
-
+          
           <p>Do not share this OTP with anyone. DFX staff will never ask for your OTP.</p>
           <p>Best regards,<br>The DFX Team</p>
         </div>
@@ -679,7 +665,6 @@ const sendPasswordResetOtp = async (user, otp) => {
  */
 const sendPasswordResetSuccess = async (user) => {
   const subject = 'Password Changed Successfully - DFX Limited';
-  
   const html = `
     <!DOCTYPE html>
     <html>
@@ -697,7 +682,7 @@ const sendPasswordResetSuccess = async (user) => {
     <body>
       <div class="container">
         <div class="header">
-          <h1>Password Changed! </h1>
+          <h1>Password Changed! ✅</h1>
         </div>
         <div class="content">
           <h2>Hi ${user.name},</h2>
@@ -707,14 +692,14 @@ const sendPasswordResetSuccess = async (user) => {
             <h3 style="margin: 10px 0;">Your password has been successfully changed</h3>
             <p style="margin: 0; color: #6b7280;">Changed on: ${new Date().toLocaleString()}</p>
           </div>
-
+          
           <p>You can now log in with your new password.</p>
-
+          
           <div class="warning">
-            <p style="margin: 0;"><strong> Didn't make this change?</strong></p>
+            <p style="margin: 0;"><strong>⚠️ Didn't make this change?</strong></p>
             <p style="margin: 5px 0 0 0;">If you didn't change your password, please contact us immediately at ${config.admin.email}</p>
           </div>
-
+          
           <p>Best regards,<br>The DFX Team</p>
         </div>
         <div class="footer">

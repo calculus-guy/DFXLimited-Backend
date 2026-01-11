@@ -20,6 +20,7 @@
   "license": "ISC",
   "description": "Server for DFX limited platform",
   "dependencies": {
+    "@getbrevo/brevo": "^3.0.1",
     "axios": "^1.13.2",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^1.41.3",

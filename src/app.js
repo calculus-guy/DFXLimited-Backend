@@ -11,6 +11,9 @@ const ApiError = require('./utils/ApiError');
 
 const app = express();
 
+// Trust proxy for Render/Heroku/etc (needed for rate limiter and secure cookies)
+app.set('trust proxy', 1);
+
 app.use(helmet());
 
 app.use(cors({
