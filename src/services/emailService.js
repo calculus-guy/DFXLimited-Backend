@@ -4,13 +4,10 @@ const { config } = require('../config');
 const transporter = nodemailer.createTransport({
   host: config.email.smtp.host,
   port: config.email.smtp.port,
-  secure: config.email.smtp.port === 465, // true for 465 (SSL), false for 587 (TLS)
+  secure: false, // Brevo uses STARTTLS on port 587
   auth: {
     user: config.email.smtp.user,
     pass: config.email.smtp.pass,
-  },
-  tls: {
-    rejectUnauthorized: false, // Allow self-signed/mismatched certs (shared hosting)
   },
 });
 
