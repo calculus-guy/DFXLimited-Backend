@@ -44,9 +44,9 @@ module.exports = {
   },
   cors: {
     origin: [
+      'https://dfxlimited.com',
       'https://dfx-limited-frontend.vercel.app',
       'https://www.dfxlimited.com',
-      'https://dfxlimited.com',
       'https://dfx-limited.netlify.app',
       // Include env origins for local dev
       ...envVars.CORS_ORIGIN.split(',').map((origin) => origin.trim()),
