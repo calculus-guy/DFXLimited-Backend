@@ -103,7 +103,9 @@ const sendOrderConfirmation = async (order) => {
         .order-info { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
         table { width: 100%; border-collapse: collapse; }
         th { background: #f3f4f6; padding: 10px; text-align: left; }
-        .total { font-size: 18px; font-weight: bold; color: #2563eb; }
+        .total-row { border-top: 2px solid #e5e7eb; font-weight: bold; }
+        .tax-row { color: #6b7280; font-size: 14px; }
+        .final-total { font-size: 18px; font-weight: bold; color: #2563eb; }
         .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 12px; }
       </style>
     </head>
@@ -132,12 +134,20 @@ const sendOrderConfirmation = async (order) => {
             </thead>
             <tbody>
               ${itemsHtml}
+              <tr class="tax-row">
+                <td colspan="2" style="padding: 10px; text-align: right;">Subtotal:</td>
+                <td style="padding: 10px; text-align: right;">₦${(order.subtotalAmount / 100).toLocaleString()}</td>
+              </tr>
+              <tr class="tax-row">
+                <td colspan="2" style="padding: 10px; text-align: right;">VAT (${order.taxRate}%):</td>
+                <td style="padding: 10px; text-align: right;">₦${(order.taxAmount / 100).toLocaleString()}</td>
+              </tr>
+              <tr class="total-row">
+                <td colspan="2" style="padding: 15px; text-align: right; font-size: 18px;">Total:</td>
+                <td class="final-total" style="padding: 15px; text-align: right;">₦${(order.totalAmount / 100).toLocaleString()}</td>
+              </tr>
             </tbody>
           </table>
-          
-          <p class="total" style="text-align: right; margin-top: 20px;">
-            Total: ₦${(order.totalAmount / 100).toLocaleString()}
-          </p>
 
           <div class="order-info">
             <h3>Delivery Address</h3>
@@ -336,6 +346,9 @@ const sendCourseRegistrationConfirmation = async (registration, course, user) =>
         .header { background: #7c3aed; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
         .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
         .course-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #7c3aed; }
+        .price-breakdown { background: #f8fafc; padding: 15px; border-radius: 6px; margin: 15px 0; }
+        .price-row { display: flex; justify-content: space-between; margin: 5px 0; }
+        .total-row { font-weight: bold; border-top: 1px solid #e5e7eb; padding-top: 10px; margin-top: 10px; }
         .price { font-size: 24px; font-weight: bold; color: #7c3aed; }
         .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 12px; }
       </style>
@@ -353,7 +366,21 @@ const sendCourseRegistrationConfirmation = async (registration, course, user) =>
             <h3>${course.title}</h3>
             <p>${course.description ? course.description.substring(0, 200) + '...' : ''}</p>
             ${course.duration ? `<p><strong>Duration:</strong> ${course.duration}</p>` : ''}
-            <p class="price">Price: ₦${(course.price / 100).toLocaleString()}</p>
+            
+            <div class="price-breakdown">
+              <div class="price-row">
+                <span>Course Fee:</span>
+                <span>₦${(registration.coursePrice / 100).toLocaleString()}</span>
+              </div>
+              <div class="price-row">
+                <span>VAT (${registration.taxRate}%):</span>
+                <span>₦${(registration.taxAmount / 100).toLocaleString()}</span>
+              </div>
+              <div class="price-row total-row">
+                <span>Total Amount:</span>
+                <span class="price">₦${(registration.totalAmount / 100).toLocaleString()}</span>
+              </div>
+            </div>
           </div>
           
           <p><strong>Status:</strong> ${registration.status}</p>
@@ -387,6 +414,9 @@ const sendCoursePaymentReceipt = async (registration, course, payment) => {
         .header { background: #10b981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
         .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
         .receipt-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px solid #10b981; }
+        .price-breakdown { background: #f8fafc; padding: 15px; border-radius: 6px; margin: 15px 0; }
+        .price-row { display: flex; justify-content: space-between; margin: 5px 0; }
+        .total-row { font-weight: bold; border-top: 1px solid #e5e7eb; padding-top: 10px; margin-top: 10px; }
         .amount { font-size: 24px; font-weight: bold; color: #10b981; }
         .access-box { background: #ecfdf5; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; }
         .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 12px; }
@@ -406,7 +436,21 @@ const sendCoursePaymentReceipt = async (registration, course, payment) => {
             <p><strong>Reference:</strong> ${payment.reference}</p>
             <p><strong>Course:</strong> ${course.title}</p>
             <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-            <p class="amount">Amount Paid: ₦${(payment.amount / 100).toLocaleString()}</p>
+            
+            <div class="price-breakdown">
+              <div class="price-row">
+                <span>Course Fee:</span>
+                <span>₦${(registration.coursePrice / 100).toLocaleString()}</span>
+              </div>
+              <div class="price-row">
+                <span>VAT (${registration.taxRate}%):</span>
+                <span>₦${(registration.taxAmount / 100).toLocaleString()}</span>
+              </div>
+              <div class="price-row total-row">
+                <span>Total Paid:</span>
+                <span class="amount">₦${(registration.totalAmount / 100).toLocaleString()}</span>
+              </div>
+            </div>
           </div>
           
           <div class="access-box">

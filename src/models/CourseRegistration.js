@@ -11,6 +11,24 @@ const courseRegistrationSchema = new mongoose.Schema({
     ref: 'Course',
     required: [true, 'Course ID is required']
   },
+  coursePrice: {
+    type: Number,
+    required: true,
+  },
+  taxAmount: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+  taxRate: {
+    type: Number,
+    required: true,
+    default: 7.5, // 7.5% VAT
+  },
+  totalAmount: {
+    type: Number,
+    required: true,
+  },
   status: {
     type: String,
     enum: ['PENDING', 'PAID', 'ACTIVE', 'CANCELLED'],

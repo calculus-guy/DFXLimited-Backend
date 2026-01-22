@@ -67,6 +67,20 @@ const orderSchema = new mongoose.Schema(
       ref: 'User',
     },
     items: [orderItemSchema],
+    subtotalAmount: {
+      type: Number,
+      required: true,
+    },
+    taxAmount: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+    taxRate: {
+      type: Number,
+      required: true,
+      default: 7.5, // 7.5% VAT
+    },
     totalAmount: {
       type: Number,
       required: true,

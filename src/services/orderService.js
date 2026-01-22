@@ -17,7 +17,7 @@ const createOrder = async (items, checkoutData, userId = null) => {
   const productMap = new Map(products.map((p) => [p._id.toString(), p]));
 
   const orderItems = [];
-  let totalAmount = 0;
+  let subtotalAmount = 0;
 
   for (const item of items) {
     const product = productMap.get(item.productId);
@@ -47,13 +47,21 @@ const createOrder = async (items, checkoutData, userId = null) => {
       subtotal,
     });
 
-    totalAmount += subtotal;
+    subtotalAmount += subtotal;
   }
+
+  // Calculate tax (7.5% VAT)
+  const taxRate = 7.5;
+  const taxAmount = Math.round((subtotalAmount * taxRate) / 100);
+  const totalAmount = subtotalAmount + taxAmount;
 
   // Create the order
   const order = await Order.create({
     userId,
     items: orderItems,
+    subtotalAmount,
+    taxAmount,
+    taxRate,
     totalAmount,
     checkoutData,
     status: 'PENDING',
@@ -66,7 +74,7 @@ const createOrder = async (items, checkoutData, userId = null) => {
     actorType: userId ? 'USER' : 'GUEST',
     targetType: 'ORDER',
     targetId: order._id,
-    metadata: { orderNumber: order.orderNumber, totalAmount, itemCount: orderItems.length }
+    metadata: { orderNumber: order.orderNumber, subtotalAmount, taxAmount, totalAmount, itemCount: orderItems.length }
   });
 
   // Send order confirmation email

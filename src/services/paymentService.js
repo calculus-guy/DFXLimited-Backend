@@ -206,10 +206,10 @@ const initiateCoursePayment = async (registration, course, user) => {
     throw new ApiError(400, 'Course has already been paid for');
   }
 
-  // Create payment record
+  // Create payment record using totalAmount from registration (includes tax)
   const payment = await Payment.create({
     courseRegistrationId: registration._id,
-    amount: course.price,
+    amount: registration.totalAmount, // Total amount including tax
     type: 'COURSE',
     status: 'PENDING'
   });
@@ -217,7 +217,7 @@ const initiateCoursePayment = async (registration, course, user) => {
   try {
     const response = await paystackApi.post('/transaction/initialize', {
       email: user.email,
-      amount: course.price, // Already in kobo
+      amount: registration.totalAmount, // Already in kobo, includes tax
       reference: payment.reference,
       callback_url: `${config.cors.origin[0]}/course-payment/verify`,
       metadata: {
@@ -225,7 +225,10 @@ const initiateCoursePayment = async (registration, course, user) => {
         courseId: course._id.toString(),
         courseName: course.title,
         paymentId: payment._id.toString(),
-        userId: user._id.toString()
+        userId: user._id.toString(),
+        coursePrice: registration.coursePrice,
+        taxAmount: registration.taxAmount,
+        totalAmount: registration.totalAmount
       }
     });
 
