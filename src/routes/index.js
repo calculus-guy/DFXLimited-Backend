@@ -8,6 +8,8 @@ const courseRoutes = require('./course.routes');
 const userRoutes = require('./user.routes');
 const contactRoutes = require('./contact.routes');
 const projectRoutes = require('./project.routes');
+const reviewRoutes = require('./review.routes');
+const promoRoutes = require('./promo.routes');
 
 // Admin routes
 const adminProductRoutes = require('./admin/product.routes');
@@ -40,6 +42,8 @@ router.use('/courses', courseRoutes);
 router.use('/users', userRoutes);
 router.use('/contact', contactRoutes);
 router.use('/projects', projectRoutes);
+router.use('/reviews', reviewRoutes);
+router.use('/promos', promoRoutes);
 
 // Admin routes
 router.use('/admin/products', adminProductRoutes);

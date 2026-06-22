@@ -46,10 +46,32 @@ const register = async (userData, ipAddress = null) => {
 };
 
 const login = async (email, password, ipAddress = null) => {
-  const user = await User.findOne({ email }).select('+password');
-  
-  if (!user || !(await user.comparePassword(password))) {
+  const user = await User.findOne({ email }).select('+password +loginAttempts +lockUntil');
+
+  if (!user) {
     throw new ApiError(401, 'Invalid email or password');
+  }
+
+  // Check if account is locked
+  if (user.lockUntil && user.lockUntil > Date.now()) {
+    const minutesLeft = Math.ceil((user.lockUntil - Date.now()) / 60000);
+    throw new ApiError(423, `Account locked due to too many failed attempts. Try again in ${minutesLeft} minute(s).`);
+  }
+
+  const passwordMatch = await user.comparePassword(password);
+
+  if (!passwordMatch) {
+    await user.incLoginAttempts();
+    const remainingAttempts = 5 - (user.loginAttempts + 1);
+    if (remainingAttempts <= 0) {
+      throw new ApiError(423, 'Account locked due to too many failed attempts. Try again in 30 minutes.');
+    }
+    throw new ApiError(401, `Invalid email or password. ${remainingAttempts} attempt(s) remaining before lockout.`);
+  }
+
+  // Reset lockout on successful login
+  if (user.loginAttempts > 0) {
+    await user.resetLoginAttempts();
   }
 
   const accessToken = tokenService.generateAccessToken({
@@ -119,6 +141,27 @@ const logout = async (userId) => {
 
 const getUserById = async (userId) => {
   const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(404, 'User not found');
+  }
+  return user;
+};
+
+const updateProfile = async (userId, updates) => {
+  const allowed = {};
+  if (updates.name && typeof updates.name === 'string') {
+    const trimmed = updates.name.trim();
+    if (trimmed.length < 2 || trimmed.length > 50) {
+      throw new ApiError(400, 'Name must be between 2 and 50 characters');
+    }
+    allowed.name = trimmed;
+  }
+
+  if (Object.keys(allowed).length === 0) {
+    throw new ApiError(400, 'No valid fields to update');
+  }
+
+  const user = await User.findByIdAndUpdate(userId, allowed, { new: true, runValidators: true });
   if (!user) {
     throw new ApiError(404, 'User not found');
   }
@@ -220,6 +263,7 @@ module.exports = {
   refreshTokens,
   logout,
   getUserById,
+  updateProfile,
   forgotPassword,
   verifyOtp,
   resetPassword,

@@ -81,6 +81,16 @@ const orderSchema = new mongoose.Schema(
       required: true,
       default: 7.5, // 7.5% VAT
     },
+    shippingMethod: {
+      type: String,
+      enum: ['STANDARD', 'EXPRESS', 'FREE'],
+      default: 'STANDARD',
+    },
+    shippingAmount: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
     totalAmount: {
       type: Number,
       required: true,

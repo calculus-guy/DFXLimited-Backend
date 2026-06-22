@@ -5,7 +5,23 @@ const emailService = require('./emailService');
 const { logActivity } = require('./activityLogService');
 const ApiError = require('../utils/ApiError');
 
-const createOrder = async (items, checkoutData, userId = null) => {
+const SHIPPING_RATES = {
+  STANDARD: 150000,  // ₦1,500 in kobo
+  EXPRESS: 300000,   // ₦3,000 in kobo
+};
+const FREE_SHIPPING_THRESHOLD = 5000000; // ₦50,000 in kobo — free standard shipping above this
+
+const calculateShipping = (subtotalAmount, shippingMethod = 'STANDARD') => {
+  if (shippingMethod === 'EXPRESS') {
+    return { shippingMethod: 'EXPRESS', shippingAmount: SHIPPING_RATES.EXPRESS };
+  }
+  if (subtotalAmount >= FREE_SHIPPING_THRESHOLD) {
+    return { shippingMethod: 'FREE', shippingAmount: 0 };
+  }
+  return { shippingMethod: 'STANDARD', shippingAmount: SHIPPING_RATES.STANDARD };
+};
+
+const createOrder = async (items, checkoutData, userId = null, shippingMethod = 'STANDARD') => {
   const productIds = items.map((item) => item.productId);
   
   const products = await productService.getProductsByIds(productIds);
@@ -53,7 +69,11 @@ const createOrder = async (items, checkoutData, userId = null) => {
   // Calculate tax (7.5% VAT)
   const taxRate = 7.5;
   const taxAmount = Math.round((subtotalAmount * taxRate) / 100);
-  const totalAmount = subtotalAmount + taxAmount;
+
+  // Calculate shipping
+  const { shippingMethod: resolvedShippingMethod, shippingAmount } = calculateShipping(subtotalAmount, shippingMethod);
+
+  const totalAmount = subtotalAmount + taxAmount + shippingAmount;
 
   // Create the order
   const order = await Order.create({
@@ -62,6 +82,8 @@ const createOrder = async (items, checkoutData, userId = null) => {
     subtotalAmount,
     taxAmount,
     taxRate,
+    shippingMethod: resolvedShippingMethod,
+    shippingAmount,
     totalAmount,
     checkoutData,
     status: 'PENDING',
@@ -74,7 +96,7 @@ const createOrder = async (items, checkoutData, userId = null) => {
     actorType: userId ? 'USER' : 'GUEST',
     targetType: 'ORDER',
     targetId: order._id,
-    metadata: { orderNumber: order.orderNumber, subtotalAmount, taxAmount, totalAmount, itemCount: orderItems.length }
+    metadata: { orderNumber: order.orderNumber, subtotalAmount, taxAmount, shippingAmount, totalAmount, itemCount: orderItems.length }
   });
 
   // Send order confirmation email
@@ -196,12 +218,20 @@ const updateOrderStatus = async (id, status, adminId = null) => {
     });
   }
 
-  // Send dispatch notification if status is SHIPPED
+  // Send email notifications based on status change
   if (status === 'SHIPPED') {
     try {
       await emailService.sendDispatchNotification(order);
     } catch (error) {
       console.error('Failed to send dispatch email:', error.message);
+    }
+  }
+
+  if (status === 'DELIVERED') {
+    try {
+      await emailService.sendDeliveredNotification(order);
+    } catch (error) {
+      console.error('Failed to send delivered email:', error.message);
     }
   }
 

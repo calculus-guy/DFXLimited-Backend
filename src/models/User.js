@@ -47,6 +47,15 @@ const userSchema = new mongoose.Schema(
     passwordChangedAt: {
       type: Date,
     },
+    loginAttempts: {
+      type: Number,
+      default: 0,
+      select: false,
+    },
+    lockUntil: {
+      type: Date,
+      select: false,
+    },
   },
   {
     timestamps: true,
@@ -113,6 +122,29 @@ userSchema.methods.clearPasswordReset = function () {
   this.passwordResetAttempts = 0;
 };
 
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCK_DURATION_MS = 30 * 60 * 1000; // 30 minutes
+
+userSchema.virtual('isLocked').get(function () {
+  return this.lockUntil && this.lockUntil > Date.now();
+});
+
+userSchema.methods.incLoginAttempts = async function () {
+  // If previous lock has expired, restart the count
+  if (this.lockUntil && this.lockUntil < Date.now()) {
+    return this.updateOne({ $set: { loginAttempts: 1 }, $unset: { lockUntil: 1 } });
+  }
+  const updates = { $inc: { loginAttempts: 1 } };
+  if (this.loginAttempts + 1 >= MAX_LOGIN_ATTEMPTS && !this.isLocked) {
+    updates.$set = { lockUntil: Date.now() + LOCK_DURATION_MS };
+  }
+  return this.updateOne(updates);
+};
+
+userSchema.methods.resetLoginAttempts = function () {
+  return this.updateOne({ $set: { loginAttempts: 0 }, $unset: { lockUntil: 1 } });
+};
+
 userSchema.methods.toJSON = function () {
   const user = this.toObject();
   delete user.password;
@@ -120,6 +152,8 @@ userSchema.methods.toJSON = function () {
   delete user.passwordResetOtp;
   delete user.passwordResetOtpExpires;
   delete user.passwordResetAttempts;
+  delete user.loginAttempts;
+  delete user.lockUntil;
   return user;
 };
 
