@@ -175,7 +175,32 @@ const processWebhook = async (event) => {
 const verifyPayment = async (reference) => {
   try {
     const response = await paystackApi.get(`/transaction/verify/${reference}`);
-    return response.data.data;
+    const paystackData = response.data.data;
+
+    // If Paystack confirms success, ensure our DB is also updated
+    // (fallback in case webhook was delayed or missed)
+    if (paystackData.status === 'success') {
+      const payment = await Payment.findOne({ reference });
+      if (payment && payment.status !== 'SUCCESS') {
+        if (payment.type === 'COURSE') {
+          await processCoursePayment(payment, paystackData);
+        } else {
+          // Mark payment success and order as paid
+          payment.status = 'SUCCESS';
+          payment.metadata = { ...payment.metadata, verifiedAt: new Date() };
+          await payment.save();
+          await orderService.markOrderAsPaid(payment.orderId, payment.reference);
+          try {
+            const order = await Order.findById(payment.orderId);
+            if (order) await emailService.sendPaymentReceipt(order, payment);
+          } catch (e) {
+            console.error('Failed to send payment receipt on verify:', e.message);
+          }
+        }
+      }
+    }
+
+    return paystackData;
   } catch (error) {
     console.error('Payment verification error:', error.response?.data || error.message);
     throw new ApiError(500, 'Failed to verify payment');

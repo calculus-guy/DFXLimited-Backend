@@ -25,6 +25,10 @@ const registerForCourse = async (userId, courseId) => {
   });
 
   if (existingRegistration) {
+    if (['PAID', 'ACTIVE'].includes(existingRegistration.status)) {
+      throw new ApiError(409, 'You are already enrolled in this course');
+    }
+
     if (existingRegistration.status === 'CANCELLED') {
       // Reactivate cancelled registration with updated pricing
       const taxRate = 7.5;
@@ -38,9 +42,11 @@ const registerForCourse = async (userId, courseId) => {
       existingRegistration.taxRate = taxRate;
       existingRegistration.totalAmount = totalAmount;
       await existingRegistration.save();
-      return { registration: existingRegistration, course, isReactivated: true };
+      return { registration: existingRegistration, course, isReactivated: true, isPaymentRetry: false };
     }
-    throw new ApiError(409, 'You are already registered for this course');
+
+    // PENDING status — return existing registration so payment can be retried
+    return { registration: existingRegistration, course, isReactivated: false, isPaymentRetry: true };
   }
 
   // Calculate tax (7.5% VAT)
@@ -69,7 +75,7 @@ const registerForCourse = async (userId, courseId) => {
     metadata: { courseId, courseName: course.title, coursePrice: course.price, taxAmount, totalAmount }
   });
 
-  return { registration, course, isReactivated: false };
+  return { registration, course, isReactivated: false, isPaymentRetry: false };
 };
 
 /**

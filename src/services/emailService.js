@@ -81,7 +81,7 @@ const sendWelcomeEmail = async (user) => {
  * Order confirmation email
  */
 const sendOrderConfirmation = async (order) => {
-  const subject = `Order Confirmed - ${order.orderNumber}`;
+  const subject = `Order Received — Complete Your Payment (${order.orderNumber})`;
   
   const itemsHtml = order.items.map(item => `
     <tr>
@@ -112,11 +112,11 @@ const sendOrderConfirmation = async (order) => {
     <body>
       <div class="container">
         <div class="header">
-          <h1>Order Confirmed! 🎉</h1>
+          <h1>Order Received 📦</h1>
         </div>
         <div class="content">
           <h2>Hi ${order.checkoutData.name},</h2>
-          <p>Thank you for your order! We've received your order and it's being processed.</p>
+          <p>We've received your order request. <strong>Please complete your payment to confirm the order.</strong> Your items are reserved for 30 minutes pending payment.</p>
           
           <div class="order-info">
             <p><strong>Order Number:</strong> ${order.orderNumber}</p>
@@ -156,7 +156,8 @@ const sendOrderConfirmation = async (order) => {
             Phone: ${order.checkoutData.phone}</p>
           </div>
 
-          <p>We'll send you another email once your order has been shipped.</p>
+          <p style="background:#fff3cd;padding:12px;border-radius:8px;border:1px solid #ffc107;">⚠️ This is <strong>not</strong> a payment confirmation. You will receive a separate payment receipt once your payment is complete.</p>
+          <p>We'll send you another email once your payment is confirmed and your order is being processed.</p>
           <p>Best regards,<br>The DFX Team</p>
         </div>
         <div class="footer">

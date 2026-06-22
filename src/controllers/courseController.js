@@ -47,7 +47,7 @@ const register = async (req, res, next) => {
     const courseId = req.params.id;
 
     // Register for course
-    const { registration, course, isReactivated } = await courseRegistrationService.registerForCourse(
+    const { registration, course, isReactivated, isPaymentRetry } = await courseRegistrationService.registerForCourse(
       userId,
       courseId
     );
@@ -55,10 +55,12 @@ const register = async (req, res, next) => {
     // Get user details for email and payment
     const user = await require('../services/authService').getUserById(userId);
 
-    // Send registration confirmation email
-    emailService.sendCourseRegistrationConfirmation(registration, course, user).catch(err => {
-      console.error('Failed to send registration email:', err.message);
-    });
+    // Only send registration confirmation email on first registration (not on payment retry)
+    if (!isPaymentRetry) {
+      emailService.sendCourseRegistrationConfirmation(registration, course, user).catch(err => {
+        console.error('Failed to send registration email:', err.message);
+      });
+    }
 
     // If course has a price, initiate payment
     if (course.price > 0) {
