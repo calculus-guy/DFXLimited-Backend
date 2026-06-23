@@ -27,7 +27,7 @@ const contactMessageSchema = new mongoose.Schema({
   },
   serviceType: {
     type: String,
-    enum: ['WEB_APP', 'MOBILE_APP', 'ERP', 'CUSTOM_SOFTWARE', 'ECOMMERCE', 'OTHER', null],
+    enum: ['WEB_APP', 'MOBILE_APP', 'IT_INFRASTRUCTURE', 'CLOUD_COMPUTING', 'SERVER_DEPLOYMENT', 'IOT_INTEGRATION', 'NETWORK_SECURITY', 'NETWORK_SETUP', null],
     default: null
   },
   message: {
@@ -53,10 +53,12 @@ contactMessageSchema.virtual('serviceTypeDisplay').get(function() {
   const displayNames = {
     'WEB_APP': 'Web Application',
     'MOBILE_APP': 'Mobile Application',
-    'ERP': 'ERP System',
-    'CUSTOM_SOFTWARE': 'Custom Software',
-    'ECOMMERCE': 'E-commerce',
-    'OTHER': 'Other'
+    'IT_INFRASTRUCTURE': 'IT Infrastructure Management',
+    'CLOUD_COMPUTING': 'Cloud Computing Services',
+    'SERVER_DEPLOYMENT': 'Server Deployment and Installation',
+    'IOT_INTEGRATION': 'IoT Integration for Factory',
+    'NETWORK_SECURITY': 'Network Security',
+    'NETWORK_SETUP': 'Network Setup and Integration'
   };
   return this.serviceType ? displayNames[this.serviceType] : null;
 });

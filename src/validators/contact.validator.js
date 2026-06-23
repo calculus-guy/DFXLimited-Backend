@@ -13,7 +13,7 @@ const submitContact = {
     phone: Joi.string().max(20).allow(null, '').optional(),
     company: Joi.string().max(200).allow(null, '').optional(),
     serviceType: Joi.string()
-      .valid('WEB_APP', 'MOBILE_APP', 'ERP', 'CUSTOM_SOFTWARE', 'ECOMMERCE', 'OTHER')
+      .valid('WEB_APP', 'MOBILE_APP', 'IT_INFRASTRUCTURE', 'CLOUD_COMPUTING', 'SERVER_DEPLOYMENT', 'IOT_INTEGRATION', 'NETWORK_SECURITY', 'NETWORK_SETUP')
       .allow(null)
       .optional(),
     message: Joi.string().required().max(5000).messages({
