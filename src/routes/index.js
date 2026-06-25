@@ -21,6 +21,7 @@ const adminDashboardRoutes = require('./admin/dashboard.routes');
 const adminActivityLogRoutes = require('./admin/activityLog.routes');
 const adminUserRoutes = require('./admin/user.routes');
 const adminReconciliationRoutes = require('./admin/reconciliation.routes');
+const adminPromoRoutes = require('./admin/promo.routes');
 
 const router = express.Router();
 
@@ -55,6 +56,7 @@ router.use('/admin/dashboard', adminDashboardRoutes);
 router.use('/admin/activity-logs', adminActivityLogRoutes);
 router.use('/admin/users', adminUserRoutes);
 router.use('/admin/reconciliation', adminReconciliationRoutes);
+router.use('/admin/promos', adminPromoRoutes);
 router.use('/upload', uploadRoutes);
 
 module.exports = router;

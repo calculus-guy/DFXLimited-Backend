@@ -91,6 +91,14 @@ const orderSchema = new mongoose.Schema(
       required: true,
       default: 0,
     },
+    promoCode: {
+      type: String,
+      default: null,
+    },
+    promoDiscountAmount: {
+      type: Number,
+      default: 0, // in kobo
+    },
     totalAmount: {
       type: Number,
       required: true,

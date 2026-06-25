@@ -3,11 +3,11 @@ const paymentService = require('../services/paymentService');
 const catchAsync = require('../utils/catchAsync');
 
 const checkout = catchAsync(async (req, res) => {
-  const { items, checkoutData, shippingMethod } = req.body;
+  const { items, checkoutData, shippingMethod, promoCode } = req.body;
   const userId = req.user?.userId || null;
 
-  // Create order
-  const order = await orderService.createOrder(items, checkoutData, userId, shippingMethod);
+  // Create order (promo validation + discount applied inside service)
+  const order = await orderService.createOrder(items, checkoutData, userId, shippingMethod, promoCode || null);
 
   // Initiate payment
   const paymentData = await paymentService.initiatePayment(order._id);

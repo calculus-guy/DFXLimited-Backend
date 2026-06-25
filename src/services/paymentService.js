@@ -4,6 +4,7 @@ const Payment = require('../models/Payment');
 const Order = require('../models/Order');
 const CourseRegistration = require('../models/CourseRegistration');
 const orderService = require('./orderService');
+const { applyPromoCode } = require('./promoService');
 const emailService = require('./emailService');
 const { logActivity } = require('./activityLogService');
 const { config } = require('../config');
@@ -132,6 +133,15 @@ const processWebhook = async (event) => {
     // Mark order as paid and update stock
     const order = await orderService.markOrderAsPaid(payment.orderId, payment.reference);
 
+    // Increment promo code usage if one was applied
+    if (order.promoCode) {
+      try {
+        await applyPromoCode(order.promoCode);
+      } catch (err) {
+        console.error('Failed to increment promo usage:', err.message);
+      }
+    }
+
     // Send payment receipt email
     try {
       await emailService.sendPaymentReceipt(order, payment);
@@ -189,10 +199,19 @@ const verifyPayment = async (reference) => {
           payment.status = 'SUCCESS';
           payment.metadata = { ...payment.metadata, verifiedAt: new Date() };
           await payment.save();
-          await orderService.markOrderAsPaid(payment.orderId, payment.reference);
+          const paidOrder = await orderService.markOrderAsPaid(payment.orderId, payment.reference);
+
+          // Increment promo code usage if one was applied
+          if (paidOrder.promoCode) {
+            try {
+              await applyPromoCode(paidOrder.promoCode);
+            } catch (err) {
+              console.error('Failed to increment promo usage on verify:', err.message);
+            }
+          }
+
           try {
-            const order = await Order.findById(payment.orderId);
-            if (order) await emailService.sendPaymentReceipt(order, payment);
+            await emailService.sendPaymentReceipt(paidOrder, payment);
           } catch (e) {
             console.error('Failed to send payment receipt on verify:', e.message);
           }

@@ -1,6 +1,7 @@
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const productService = require('./productService');
+const promoService = require('./promoService');
 const emailService = require('./emailService');
 const { logActivity } = require('./activityLogService');
 const ApiError = require('../utils/ApiError');
@@ -21,7 +22,7 @@ const calculateShipping = (subtotalAmount, shippingMethod = 'STANDARD') => {
   return { shippingMethod: 'STANDARD', shippingAmount: SHIPPING_RATES.STANDARD };
 };
 
-const createOrder = async (items, checkoutData, userId = null, shippingMethod = 'STANDARD') => {
+const createOrder = async (items, checkoutData, userId = null, shippingMethod = 'STANDARD', promoCode = null) => {
   const productIds = items.map((item) => item.productId);
   
   const products = await productService.getProductsByIds(productIds);
@@ -73,7 +74,20 @@ const createOrder = async (items, checkoutData, userId = null, shippingMethod = 
   // Calculate shipping
   const { shippingMethod: resolvedShippingMethod, shippingAmount } = calculateShipping(subtotalAmount, shippingMethod);
 
-  const totalAmount = subtotalAmount + taxAmount + shippingAmount;
+  // Validate and apply promo code (validated against actual DB subtotal)
+  let appliedPromoCode = null;
+  let promoDiscountAmount = 0;
+  if (promoCode) {
+    try {
+      const promoDetails = await promoService.validatePromoCode(promoCode, subtotalAmount);
+      appliedPromoCode = promoDetails.code;
+      promoDiscountAmount = promoDetails.discountAmount;
+    } catch (err) {
+      throw new ApiError(400, err.message || 'Invalid promo code');
+    }
+  }
+
+  const totalAmount = Math.max(0, subtotalAmount + taxAmount + shippingAmount - promoDiscountAmount);
 
   // Create the order
   const order = await Order.create({
@@ -84,6 +98,8 @@ const createOrder = async (items, checkoutData, userId = null, shippingMethod = 
     taxRate,
     shippingMethod: resolvedShippingMethod,
     shippingAmount,
+    promoCode: appliedPromoCode,
+    promoDiscountAmount,
     totalAmount,
     checkoutData,
     status: 'PENDING',
@@ -96,7 +112,7 @@ const createOrder = async (items, checkoutData, userId = null, shippingMethod = 
     actorType: userId ? 'USER' : 'GUEST',
     targetType: 'ORDER',
     targetId: order._id,
-    metadata: { orderNumber: order.orderNumber, subtotalAmount, taxAmount, shippingAmount, totalAmount, itemCount: orderItems.length }
+    metadata: { orderNumber: order.orderNumber, subtotalAmount, taxAmount, shippingAmount, promoDiscountAmount, totalAmount, itemCount: orderItems.length }
   });
 
   // Send order confirmation email
