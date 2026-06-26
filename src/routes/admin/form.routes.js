@@ -8,8 +8,8 @@ const {
   deleteForm,
   getSubmissions,
 } = require('../../controllers/admin/formController');
-const authMiddleware = require('../../middleware/authMiddleware');
-const roleMiddleware = require('../../middleware/roleMiddleware');
+const authMiddleware = require('../../middleware/auth');
+const roleMiddleware = require('../../middleware/role');
 
 const router = express.Router();
 
