@@ -1,4 +1,5 @@
 const reviewService = require('../services/reviewService');
+const User = require('../models/User');
 const ApiError = require('../utils/ApiError');
 
 const createReview = async (req, res, next) => {
@@ -9,11 +10,23 @@ const createReview = async (req, res, next) => {
       throw new ApiError(400, 'productId, rating, and comment are required');
     }
 
+    // req.user comes from JWT payload: { userId, email, role }
+    const userId = req.user.userId;
+    if (!userId) {
+      throw new ApiError(401, 'User identity could not be determined');
+    }
+
+    // Fetch name from DB since it is not stored in the JWT
+    const user = await User.findById(userId).select('name');
+    if (!user) {
+      throw new ApiError(404, 'User not found');
+    }
+
     const review = await reviewService.createReview(
       productId,
-      req.user._id,
-      req.user.name,
-      rating,
+      userId,
+      user.name,
+      Number(rating),
       comment
     );
 

@@ -10,6 +10,7 @@ const contactRoutes = require('./contact.routes');
 const projectRoutes = require('./project.routes');
 const reviewRoutes = require('./review.routes');
 const promoRoutes = require('./promo.routes');
+const formRoutes = require('./form.routes');
 
 // Admin routes
 const adminProductRoutes = require('./admin/product.routes');
@@ -22,6 +23,7 @@ const adminActivityLogRoutes = require('./admin/activityLog.routes');
 const adminUserRoutes = require('./admin/user.routes');
 const adminReconciliationRoutes = require('./admin/reconciliation.routes');
 const adminPromoRoutes = require('./admin/promo.routes');
+const adminFormRoutes = require('./admin/form.routes');
 
 const router = express.Router();
 
@@ -45,6 +47,7 @@ router.use('/contact', contactRoutes);
 router.use('/projects', projectRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/promos', promoRoutes);
+router.use('/forms', formRoutes);
 
 // Admin routes
 router.use('/admin/products', adminProductRoutes);
@@ -57,6 +60,7 @@ router.use('/admin/activity-logs', adminActivityLogRoutes);
 router.use('/admin/users', adminUserRoutes);
 router.use('/admin/reconciliation', adminReconciliationRoutes);
 router.use('/admin/promos', adminPromoRoutes);
+router.use('/admin/forms', adminFormRoutes);
 router.use('/upload', uploadRoutes);
 
 module.exports = router;

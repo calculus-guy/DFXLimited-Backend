@@ -806,6 +806,61 @@ const sendPasswordResetSuccess = async (user) => {
   return sendEmail(user.email, subject, html);
 };
 
+/**
+ * Admin notification for new form submission
+ */
+const sendFormSubmissionAlert = async (form, submission, answers) => {
+  const subject = `📋 New Form Submission — ${form.title}`;
+
+  const answersHtml = form.fields
+    .map((field) => {
+      const value = answers[field.id] || '—';
+      return `<tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;color:#374151;width:35%;">${field.label}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${value}</td>
+      </tr>`;
+    })
+    .join('');
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        .info-box { background: white; border-radius: 8px; overflow: hidden; margin: 15px 0; border: 1px solid #e5e7eb; }
+        table { width: 100%; border-collapse: collapse; }
+        .meta { color: #6b7280; font-size: 13px; margin-top: 16px; }
+        .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>New Form Submission 📋</h1>
+        </div>
+        <div class="content">
+          <p>A new submission has been received for the form: <strong>${form.title}</strong></p>
+          <div class="info-box">
+            <table>${answersHtml}</table>
+          </div>
+          <p class="meta">Submitted: ${new Date(submission.createdAt).toLocaleString()}</p>
+          <p class="meta">Total submissions for this form: ${form.submissionCount + 1}</p>
+        </div>
+        <div class="footer">
+          <p>© ${new Date().getFullYear()} DFX Limited. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail(config.admin.email, subject, html);
+};
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
@@ -821,4 +876,5 @@ module.exports = {
   sendContactInquiryNotification,
   sendPasswordResetOtp,
   sendPasswordResetSuccess,
+  sendFormSubmissionAlert,
 };
