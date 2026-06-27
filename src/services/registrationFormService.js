@@ -8,7 +8,7 @@ const DEFAULT_FIELDS = [
   { id: 'fullName', label: 'Full Name', type: 'text', required: true, placeholder: 'Enter your full name' },
   { id: 'email', label: 'Email Address', type: 'email', required: true, placeholder: 'Enter your email address' },
   { id: 'phone', label: 'Phone / WhatsApp Number', type: 'tel', required: true, placeholder: 'e.g. +2348012345678' },
-  { id: 'course', label: 'Course', type: 'text', required: true, placeholder: 'Enter the course you are registering for' },
+  { id: 'course', label: 'Course', type: 'select', required: true, options: [], placeholder: 'Select a course' },
 ];
 
 const slugify = (title) =>
