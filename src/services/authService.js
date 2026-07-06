@@ -5,14 +5,14 @@ const { sendWelcomeEmail, sendPasswordResetOtp, sendPasswordResetSuccess } = req
 const { logActivity } = require('./activityLogService');
 
 const register = async (userData, ipAddress = null) => {
-  const { email, password, name } = userData;
+  const { email, password, name, phone } = userData;
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
     throw new ApiError(409, 'Email already registered');
   }
 
-  const user = await User.create({ email, password, name });
+  const user = await User.create({ email, password, name, phone: phone || null });
 
   const accessToken = tokenService.generateAccessToken({
     userId: user._id,
@@ -155,6 +155,10 @@ const updateProfile = async (userId, updates) => {
       throw new ApiError(400, 'Name must be between 2 and 50 characters');
     }
     allowed.name = trimmed;
+  }
+
+  if (updates.phone !== undefined) {
+    allowed.phone = updates.phone ? updates.phone.trim() : null;
   }
 
   if (Object.keys(allowed).length === 0) {

@@ -21,6 +21,7 @@ const registerSchema = Joi.object({
     'string.max': 'Name cannot exceed 50 characters',
     'any.required': 'Name is required',
   }),
+  phone: Joi.string().max(20).optional().allow('', null),
 });
 
 const loginSchema = Joi.object({
